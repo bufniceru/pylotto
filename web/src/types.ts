@@ -33,6 +33,35 @@ export interface WorkspaceTab {
   label: string;
 }
 
+export interface PredictiveScoreNumber {
+  number: number;
+  score: number;
+  rank: number;
+  isTopPick: boolean;
+  markovScore: number;
+  transitionScore: number;
+  frequencyScore: number;
+  recencyScore: number;
+  gapScore: number;
+  pairAffinityScore: number;
+  gapStateBucket: number;
+  gapStateProbability: number;
+  recentHits: number;
+  currentGap: number;
+}
+
+export interface PredictiveScoreGrid {
+  name: string;
+  totalDraws: number;
+  firstDraw: string;
+  lastDraw: string;
+  recentDrawWindow: number;
+  markovModel: string;
+  gapStateMaxGap: number;
+  topNumbers: number[];
+  numbers: PredictiveScoreNumber[];
+}
+
 export interface LastSeenHighlightPoint {
   number: number;
   drawIndex: number;

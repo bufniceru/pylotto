@@ -353,6 +353,18 @@ input {
   margin-left: 0;
 }
 
+.agreement-pill {
+  background: #e9f8ed;
+  color: #14572d;
+}
+
+.agreement-pill span {
+  margin-left: 4px;
+  color: #4e6658;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .compact-button {
   padding: 5px 10px;
   font-size: 0.82rem;
@@ -428,6 +440,90 @@ input {
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.24),
     0 12px 22px rgba(38, 79, 159, 0.24);
+}
+
+.score-grid-section {
+  gap: 12px;
+}
+
+.score-grid-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.rank-navigator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rank-input-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #eff5ff;
+  color: #264f9f;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.rank-input-label input {
+  width: 58px;
+  padding: 3px 6px;
+  border: 1px solid rgba(38, 79, 159, 0.26);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #172033;
+  font-weight: 800;
+  text-align: center;
+}
+
+.score-cell {
+  border-color: var(--score-border);
+  background: var(--score-bg);
+  color: var(--score-text);
+}
+
+.draw-cell-button.score-cell:not(.selected):hover {
+  border-color: #174b91;
+  filter: saturate(1.12) brightness(1.03);
+}
+
+.score-cell.topPick {
+  border-width: 2px;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.32),
+    0 10px 20px rgba(25, 68, 132, 0.22);
+}
+
+.score-cell.rankFocused {
+  outline: 4px solid #d3222a;
+  outline-offset: 3px;
+}
+
+.score-cell.selected {
+  border-color: var(--score-border);
+  background: var(--score-bg);
+  color: var(--score-text);
+  box-shadow:
+    0 0 0 3px rgba(255, 210, 77, 0.95),
+    inset 0 2px 0 rgba(255, 255, 255, 0.22);
+}
+
+.score-cell.uncertain {
+  border-color: var(--score-border);
+  background: var(--score-bg);
+  color: var(--score-text);
+  box-shadow:
+    0 0 0 3px rgba(31, 122, 57, 0.88),
+    inset 0 2px 0 rgba(255, 255, 255, 0.22);
 }
 
 @media (max-width: 1120px) {

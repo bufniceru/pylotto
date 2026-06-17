@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import type { WorkspaceTab, WorkspaceView } from "../types";
+import predictiveScoreGridJson from "../data/predictive-score-grid.json";
+import type { PredictiveScoreGrid, PredictiveScoreNumber, WorkspaceTab, WorkspaceView } from "../types";
 
 const nextDrawStorageKey = "pylotto.nextPossibleDrawNumbers";
 const droppedDrawStorageKey = "pylotto.nextPossibleDrawDroppedNumbers";
 const uncertainDrawStorageKey = "pylotto.nextPossibleDrawUncertainNumbers";
-type NextDrawTab = "possible" | "dropped";
+type NextDrawTab = "possible" | "scoreGrid";
 interface NextPossibleDrawState {
   selectedNumbers: number[];
   droppedNumbers: number[];
@@ -93,9 +94,14 @@ function saveNextPossibleDrawState(): void {
 }
 
 function applyNextPossibleDrawState(state: NextPossibleDrawState): void {
-  nextDrawNumbers.value = new Set(normalizeNumbers(state.selectedNumbers, 6));
+  const selectedNumbers = normalizeNumbers(state.selectedNumbers, 6);
+  const selectedSet = new Set(selectedNumbers);
+
+  nextDrawNumbers.value = selectedSet;
   droppedDrawNumbers.value = new Set(normalizeNumbers(state.droppedNumbers));
-  uncertainDrawNumbers.value = new Set(normalizeNumbers(state.uncertainNumbers));
+  uncertainDrawNumbers.value = new Set(
+    normalizeNumbers(state.uncertainNumbers).filter((number) => !selectedSet.has(number)),
+  );
 }
 
 const localState = loadLocalNextPossibleDrawState();
@@ -103,10 +109,107 @@ const nextDrawNumbers = ref<Set<number>>(new Set(localState.selectedNumbers));
 const droppedDrawNumbers = ref<Set<number>>(new Set(localState.droppedNumbers));
 const uncertainDrawNumbers = ref<Set<number>>(new Set(localState.uncertainNumbers));
 const activeTab = ref<NextDrawTab>("possible");
+const selectedPredictiveRank = ref(1);
 const nextDrawCount = computed(() => nextDrawNumbers.value.size);
 const droppedDrawCount = computed(() => droppedDrawNumbers.value.size);
 const uncertainDrawCount = computed(() => uncertainDrawNumbers.value.size);
-const availableDrawCount = computed(() => 49 - droppedDrawNumbers.value.size);
+const predictiveScoreGrid = predictiveScoreGridJson as PredictiveScoreGrid;
+const scoreRowsByNumber = computed(() => {
+  const rows = new Map<number, PredictiveScoreNumber>();
+
+  for (const row of predictiveScoreGrid.numbers) {
+    rows.set(row.number, row);
+  }
+
+  return rows;
+});
+const scoreRange = computed(() => {
+  const scores = predictiveScoreGrid.numbers.map((row) => row.score);
+
+  return {
+    min: Math.min(...scores),
+    max: Math.max(...scores),
+  };
+});
+const maxScoreRank = computed(() => predictiveScoreGrid.numbers.length);
+const selectedPredictiveNumber = computed(() => {
+  const row = predictiveScoreGrid.numbers.find(
+    (candidate) => candidate.rank === selectedPredictiveRank.value,
+  );
+
+  return row?.number ?? null;
+});
+const selectedDrawNumbers = computed(() =>
+  [...nextDrawNumbers.value].sort((left, right) => left - right),
+);
+const selectedPredictiveRows = computed(() =>
+  selectedDrawNumbers.value
+    .map((number) => scoreRowsByNumber.value.get(number))
+    .filter((row): row is PredictiveScoreNumber => row !== undefined),
+);
+const topPickMatchCount = computed(() => {
+  const topNumbers = new Set(predictiveScoreGrid.topNumbers);
+
+  return selectedDrawNumbers.value.filter((number) => topNumbers.has(number)).length;
+});
+const averageSelectedRank = computed(() => {
+  if (selectedPredictiveRows.value.length === 0) {
+    return null;
+  }
+
+  const rankTotal = selectedPredictiveRows.value.reduce(
+    (total, row) => total + row.rank,
+    0,
+  );
+
+  return rankTotal / selectedPredictiveRows.value.length;
+});
+const averageSelectedStrength = computed(() => {
+  if (selectedPredictiveRows.value.length === 0 || maxScoreRank.value <= 1) {
+    return 0;
+  }
+
+  const strengthTotal = selectedPredictiveRows.value.reduce(
+    (total, row) => total + (maxScoreRank.value - row.rank) / (maxScoreRank.value - 1),
+    0,
+  );
+
+  return strengthTotal / selectedPredictiveRows.value.length;
+});
+const predictionAgreementScore = computed(() => {
+  if (nextDrawCount.value === 0) {
+    return 0;
+  }
+
+  const completeness = nextDrawCount.value / 6;
+  const topPickOverlap = topPickMatchCount.value / 6;
+  const score = (
+    0.55 * averageSelectedStrength.value
+    + 0.35 * topPickOverlap
+    + 0.1 * completeness
+  ) * 100;
+
+  return Math.round(score);
+});
+const predictionAgreementLabel = computed(() => {
+  if (nextDrawCount.value === 0) {
+    return "Select numbers";
+  }
+
+  if (predictionAgreementScore.value >= 80) {
+    return "Very strong";
+  }
+
+  if (predictionAgreementScore.value >= 60) {
+    return "Strong";
+  }
+
+  if (predictionAgreementScore.value >= 40) {
+    return "Moderate";
+  }
+
+  return "Low";
+});
 let clickTimer: ReturnType<typeof setTimeout> | null = null;
 
 watch([nextDrawNumbers, droppedDrawNumbers, uncertainDrawNumbers], () => {
@@ -126,16 +229,19 @@ function toggleNextDrawNumber(number: number): void {
   }
 
   const nextNumbers = new Set(nextDrawNumbers.value);
+  const nextUncertainNumbers = new Set(uncertainDrawNumbers.value);
 
   if (nextNumbers.has(number)) {
     nextNumbers.delete(number);
   } else if (nextNumbers.size < 6) {
     nextNumbers.add(number);
+    nextUncertainNumbers.delete(number);
   } else {
     return;
   }
 
   nextDrawNumbers.value = nextNumbers;
+  uncertainDrawNumbers.value = nextUncertainNumbers;
 }
 
 function queueNextDrawToggle(number: number): void {
@@ -146,12 +252,22 @@ function queueNextDrawToggle(number: number): void {
   }, 220);
 }
 
-function queueDroppedDrawToggle(number: number): void {
+function toggleUncertainDrawNumber(number: number): void {
   clearClickTimer();
-  clickTimer = setTimeout(() => {
-    toggleDroppedDrawNumber(number);
-    clickTimer = null;
-  }, 220);
+
+  if (droppedDrawNumbers.value.has(number)) {
+    return;
+  }
+
+  const nextUncertainNumbers = new Set(uncertainDrawNumbers.value);
+
+  if (nextUncertainNumbers.has(number)) {
+    nextUncertainNumbers.delete(number);
+  } else {
+    nextUncertainNumbers.add(number);
+  }
+
+  uncertainDrawNumbers.value = nextUncertainNumbers;
 }
 
 function toggleDroppedDrawNumber(number: number): void {
@@ -174,25 +290,7 @@ function toggleDroppedDrawNumber(number: number): void {
   uncertainDrawNumbers.value = nextUncertainNumbers;
 }
 
-function toggleUncertainDrawNumber(number: number): void {
-  clearClickTimer();
-
-  const nextDroppedNumbers = new Set(droppedDrawNumbers.value);
-  const nextUncertainNumbers = new Set(uncertainDrawNumbers.value);
-
-  nextDroppedNumbers.delete(number);
-
-  if (nextUncertainNumbers.has(number)) {
-    nextUncertainNumbers.delete(number);
-  } else {
-    nextUncertainNumbers.add(number);
-  }
-
-  droppedDrawNumbers.value = nextDroppedNumbers;
-  uncertainDrawNumbers.value = nextUncertainNumbers;
-}
-
-function handleNumberDoubleClick(event: MouseEvent, number: number): void {
+function handlePossibleNumberDoubleClick(event: MouseEvent, number: number): void {
   if (event.ctrlKey) {
     toggleUncertainDrawNumber(number);
     return;
@@ -201,8 +299,123 @@ function handleNumberDoubleClick(event: MouseEvent, number: number): void {
   toggleDroppedDrawNumber(number);
 }
 
+function handleScoreNumberDoubleClick(number: number): void {
+  toggleUncertainDrawNumber(number);
+}
+
+function selectPredictiveRank(value: number): void {
+  if (!Number.isFinite(value)) {
+    return;
+  }
+
+  selectedPredictiveRank.value = Math.min(
+    Math.max(Math.trunc(value), 1),
+    maxScoreRank.value,
+  );
+}
+
+function showPreviousPredictiveRank(): void {
+  selectPredictiveRank(selectedPredictiveRank.value - 1);
+}
+
+function showNextPredictiveRank(): void {
+  selectPredictiveRank(selectedPredictiveRank.value + 1);
+}
+
+function showFirstPredictiveRank(): void {
+  selectPredictiveRank(1);
+}
+
+function showLastPredictiveRank(): void {
+  selectPredictiveRank(maxScoreRank.value);
+}
+
+function selectPredictiveNumberRank(number: number): void {
+  const row = scoreRowsByNumber.value.get(number);
+
+  if (row) {
+    selectPredictiveRank(row.rank);
+  }
+}
+
 function resetNextDrawNumbers(): void {
   nextDrawNumbers.value = new Set();
+}
+
+function colorChannel(start: number, end: number, ratio: number): number {
+  return Math.round(start + (end - start) * ratio);
+}
+
+function scorePercent(number: number): number {
+  const row = scoreRowsByNumber.value.get(number);
+
+  if (!row) {
+    return 0;
+  }
+
+  const spread = scoreRange.value.max - scoreRange.value.min;
+  if (spread <= 0) {
+    return 0;
+  }
+
+  return Math.min(Math.max((row.score - scoreRange.value.min) / spread, 0), 1);
+}
+
+function gradientRatio(number: number): number {
+  const row = scoreRowsByNumber.value.get(number);
+  const maxRank = maxScoreRank.value;
+
+  if (!row || maxRank <= 1) {
+    return 0;
+  }
+
+  return Math.min(Math.max((maxRank - row.rank) / (maxRank - 1), 0), 1);
+}
+
+function mixColor(
+  start: [number, number, number],
+  end: [number, number, number],
+  ratio: number,
+): [number, number, number] {
+  return [
+    colorChannel(start[0], end[0], ratio),
+    colorChannel(start[1], end[1], ratio),
+    colorChannel(start[2], end[2], ratio),
+  ];
+}
+
+function scoreCellStyle(number: number): Record<string, string> {
+  const ratio = gradientRatio(number);
+  const [red, green, blue] =
+    ratio < 0.5
+      ? mixColor([219, 248, 213], [71, 178, 92], ratio * 2)
+      : mixColor([71, 178, 92], [10, 86, 44], (ratio - 0.5) * 2);
+  const textColor = ratio > 0.56 ? "#ffffff" : "#17391f";
+
+  return {
+    "--score-bg": `rgb(${red}, ${green}, ${blue})`,
+    "--score-border": `rgba(${Math.max(red - 42, 0)}, ${Math.max(green - 52, 0)}, ${Math.max(blue - 42, 0)}, 0.68)`,
+    "--score-text": textColor,
+  };
+}
+
+function scoreCellTitle(number: number): string {
+  const row = scoreRowsByNumber.value.get(number);
+
+  if (!row) {
+    return `Number ${number}`;
+  }
+
+  return [
+    `Number ${number}`,
+    `Rank ${row.rank}`,
+    `Score ${row.score.toFixed(4)}`,
+    `Score percent ${(scorePercent(number) * 100).toFixed(1)}%`,
+    `Gap-state probability ${(row.gapStateProbability * 100).toFixed(2)}%`,
+    `Gap bucket ${row.gapStateBucket}`,
+    `Recent hits ${row.recentHits}`,
+    `Current gap ${row.currentGap}`,
+  ].join(" | ");
 }
 
 onBeforeUnmount(() => {
@@ -239,19 +452,6 @@ onMounted(() => {
         <button class="ghost-button" type="button" @click="emit('close')">Close</button>
       </header>
 
-      <nav class="mdi-tabs" aria-label="Open workspace views">
-        <button
-          v-for="tab in workspaceTabs"
-          :key="tab.id"
-          class="mdi-tab"
-          :class="{ active: activeWorkspaceView === tab.id }"
-          type="button"
-          @click="emit('switchWorkspaceView', tab.id)"
-        >
-          {{ tab.label }}
-        </button>
-      </nav>
-
       <nav class="view-tabs" aria-label="Next possible draw views">
         <button
           class="view-tab"
@@ -263,11 +463,11 @@ onMounted(() => {
         </button>
         <button
           class="view-tab"
-          :class="{ active: activeTab === 'dropped' }"
+          :class="{ active: activeTab === 'scoreGrid' }"
           type="button"
-          @click="activeTab = 'dropped'"
+          @click="activeTab = 'scoreGrid'"
         >
-          Dropped Numbers
+          Predictive Score Grid
         </button>
       </nav>
 
@@ -279,18 +479,20 @@ onMounted(() => {
           <strong>6</strong>
         </p>
         <p class="reference-pill next-draw-reference">
-          Available
-          <strong>{{ availableDrawCount }}</strong>
-          of
-          <strong>49</strong>
-        </p>
-        <p class="reference-pill next-draw-reference">
-          Dropped
-          <strong>{{ droppedDrawCount }}</strong>
-        </p>
-        <p class="reference-pill next-draw-reference">
           Unsure
           <strong>{{ uncertainDrawCount }}</strong>
+        </p>
+        <p class="reference-pill next-draw-reference">
+          Deleted
+          <strong>{{ droppedDrawCount }}</strong>
+        </p>
+        <p
+          class="reference-pill next-draw-reference agreement-pill"
+          :title="`Top matches ${topPickMatchCount}/6 | Average rank ${averageSelectedRank === null ? 'n/a' : averageSelectedRank.toFixed(1)}`"
+        >
+          Model Agreement
+          <strong>{{ predictionAgreementScore }}%</strong>
+          <span>{{ predictionAgreementLabel }}</span>
         </p>
         <button
           class="ghost-button compact-button"
@@ -326,32 +528,99 @@ onMounted(() => {
               type="button"
               role="gridcell"
               @click="queueNextDrawToggle(number)"
-              @dblclick="handleNumberDoubleClick($event, number)"
+              @dblclick="handlePossibleNumberDoubleClick($event, number)"
             >
               {{ number }}
             </button>
           </div>
         </div>
 
-        <div v-else class="draw-section">
-          <div class="draw-grid" role="grid" aria-label="Dropped next possible draw numbers">
+        <div v-else-if="activeTab === 'scoreGrid'" class="draw-section score-grid-section">
+          <div class="draw-grid score-draw-grid" role="grid" :aria-label="predictiveScoreGrid.name">
             <button
               v-for="number in 49"
               :key="number"
-              class="draw-cell draw-cell-button"
+              class="draw-cell draw-cell-button score-cell"
               :class="{
-                available: !droppedDrawNumbers.has(number),
-                dropped: droppedDrawNumbers.has(number),
                 uncertain: uncertainDrawNumbers.has(number),
                 selected: nextDrawNumbers.has(number),
+                topPick: scoreRowsByNumber.get(number)?.isTopPick,
+                rankFocused: selectedPredictiveNumber === number,
               }"
-              :aria-pressed="droppedDrawNumbers.has(number)"
+              :style="scoreCellStyle(number)"
+              :title="scoreCellTitle(number)"
+              :aria-pressed="nextDrawNumbers.has(number)"
               type="button"
               role="gridcell"
-              @click="queueDroppedDrawToggle(number)"
-              @dblclick="handleNumberDoubleClick($event, number)"
+              @click="selectPredictiveNumberRank(number); queueNextDrawToggle(number)"
+              @dblclick="handleScoreNumberDoubleClick(number)"
             >
               {{ number }}
+            </button>
+          </div>
+
+          <div class="score-grid-summary">
+            <p class="reference-pill next-draw-reference">{{ predictiveScoreGrid.name }}</p>
+            <p class="reference-pill next-draw-reference">
+              Top
+              <strong>{{ predictiveScoreGrid.topNumbers.join(", ") }}</strong>
+            </p>
+            <p class="reference-pill next-draw-reference">
+              Window
+              <strong>{{ predictiveScoreGrid.recentDrawWindow }}</strong>
+            </p>
+            <p class="reference-pill next-draw-reference">
+              Model
+              <strong>{{ predictiveScoreGrid.markovModel }}</strong>
+            </p>
+          </div>
+
+          <div class="rank-navigator" aria-label="Predictive rank navigator">
+            <button
+              class="ghost-button compact-button"
+              :disabled="selectedPredictiveRank <= 1"
+              type="button"
+              @click="showFirstPredictiveRank"
+            >
+              First
+            </button>
+            <button
+              class="ghost-button compact-button"
+              :disabled="selectedPredictiveRank <= 1"
+              type="button"
+              @click="showPreviousPredictiveRank"
+            >
+              Previous
+            </button>
+            <label class="rank-input-label">
+              Rank
+              <input
+                :max="maxScoreRank"
+                min="1"
+                type="number"
+                :value="selectedPredictiveRank"
+                @input="selectPredictiveRank(Number(($event.target as HTMLInputElement).value))"
+              >
+            </label>
+            <p class="reference-pill next-draw-reference">
+              Number
+              <strong>{{ selectedPredictiveNumber ?? "n/a" }}</strong>
+            </p>
+            <button
+              class="ghost-button compact-button"
+              :disabled="selectedPredictiveRank >= maxScoreRank"
+              type="button"
+              @click="showNextPredictiveRank"
+            >
+              Next
+            </button>
+            <button
+              class="ghost-button compact-button"
+              :disabled="selectedPredictiveRank >= maxScoreRank"
+              type="button"
+              @click="showLastPredictiveRank"
+            >
+              Last
             </button>
           </div>
         </div>

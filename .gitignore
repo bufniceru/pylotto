@@ -13,4 +13,11 @@ wheels/
 web/node_modules/
 web/dist/
 web/electron-package/
+web/electron-package-rebuild/
+web/electron-package-rebuild-fresh/
 web/release/
+
+# Generated databases and bundled tools
+src/pylotto/combinations_1_to_49.sqlite
+src/pylotto/lotto_results.sqlite
+utils/ffmpeg/
