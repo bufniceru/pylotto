@@ -1,0 +1,16 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Electron / web app outputs
+web/node_modules/
+web/dist/
+web/electron-package/
+web/release/
