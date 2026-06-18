@@ -30,6 +30,16 @@ function normalizeNextPossibleDrawState(state) {
   };
 }
 
+function normalizeDrawDate(value) {
+  const date = String(value ?? "").trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error("Draw date must use YYYY-MM-DD format.");
+  }
+
+  return date;
+}
+
 function nextPossibleDrawStatePath() {
   return path.join(app.getPath("userData"), nextPossibleDrawStateFileName);
 }
@@ -40,6 +50,14 @@ function lottoYamlPath() {
   }
 
   return path.join(process.resourcesPath, "data", "lotto_results.yaml");
+}
+
+function reportsPath() {
+  if (isDev) {
+    return path.resolve(__dirname, "../../reports");
+  }
+
+  return path.join(path.dirname(app.getPath("exe")), "reports");
 }
 
 async function loadLottoHistory() {
@@ -95,6 +113,88 @@ async function saveNextPossibleDrawState(state) {
   return normalizedState;
 }
 
+async function saveRealDraw(payload) {
+  const drawDate = normalizeDrawDate(payload?.date);
+  const numbers = normalizeDrawNumbers(payload?.numbers, 6);
+  const plannedNumbers = normalizeDrawNumbers(payload?.plannedNumbers, 6);
+
+  if (numbers.length !== 6) {
+    throw new Error("Real draw must contain exactly 6 unique numbers.");
+  }
+
+  const sourcePath = lottoYamlPath();
+  const fileContent = await fs.readFile(sourcePath, "utf8");
+  const parsedYaml = yaml.load(fileContent) ?? {};
+  const payloadRoot = typeof parsedYaml === "object" && parsedYaml !== null ? parsedYaml : {};
+  const lottoResults = payloadRoot.lotto_results ?? {};
+  const draws = Array.isArray(lottoResults.draws) ? lottoResults.draws : [];
+  const existingDrawIndex = draws.findIndex((draw) => draw?.date === drawDate);
+  const nextDraw = { date: drawDate, numbers };
+
+  if (existingDrawIndex >= 0) {
+    draws[existingDrawIndex] = nextDraw;
+  } else {
+    draws.push(nextDraw);
+  }
+
+  draws.sort((left, right) => String(left.date).localeCompare(String(right.date)));
+  lottoResults.draws = draws;
+  lottoResults.total_draws = draws.length;
+  lottoResults.first_draw = draws[0]?.date ?? drawDate;
+  lottoResults.last_draw = draws[draws.length - 1]?.date ?? drawDate;
+  payloadRoot.lotto_results = lottoResults;
+
+  await fs.writeFile(
+    sourcePath,
+    yaml.dump(payloadRoot, {
+      lineWidth: 120,
+      noRefs: true,
+      sortKeys: false,
+    }),
+    "utf8",
+  );
+
+  const realDrawSet = new Set(numbers);
+  const matchedNumbers = plannedNumbers.filter((number) => realDrawSet.has(number));
+
+  return {
+    date: drawDate,
+    numbers,
+    matchedNumbers,
+    matchCount: matchedNumbers.length,
+    totalDraws: draws.length,
+    yamlPath: sourcePath,
+  };
+}
+
+function sanitizeReportFileName(fileName) {
+  const safeFileName = String(fileName ?? "")
+    .trim()
+    .replace(/[^a-z0-9._-]+/gi, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (safeFileName.toLowerCase().endsWith(".svg")) {
+    return safeFileName;
+  }
+
+  return `${safeFileName || "last-seen-highlight-last-50"}.svg`;
+}
+
+async function saveReportSvg({ fileName, svg }) {
+  if (typeof svg !== "string" || !svg.trimStart().startsWith("<svg")) {
+    throw new Error("Invalid SVG payload.");
+  }
+
+  const reportDirectory = reportsPath();
+  const reportFileName = sanitizeReportFileName(fileName);
+  const reportPath = path.join(reportDirectory, reportFileName);
+
+  await fs.mkdir(reportDirectory, { recursive: true });
+  await fs.writeFile(reportPath, svg, "utf8");
+
+  return { path: reportPath };
+}
+
 function sendMenuAction(action, payload = undefined) {
   const focusedWindow = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
   focusedWindow?.webContents.send("pylotto-menu-action", { action, payload });
@@ -143,6 +243,14 @@ function buildApplicationMenu() {
               {
                 label: "Last Seen Difference Highlight",
                 click: () => sendMenuAction("openLastSeenDifferenceHighlight"),
+              },
+              {
+                label: "Freshness Report",
+                click: () => sendMenuAction("openFreshnessReport"),
+              },
+              {
+                label: "Proximity Report",
+                click: () => sendMenuAction("openProximityReport"),
               },
             ],
           },
@@ -197,6 +305,8 @@ ipcMain.handle("load-next-possible-draw-state", async () => loadNextPossibleDraw
 ipcMain.handle("save-next-possible-draw-state", async (_event, state) =>
   saveNextPossibleDrawState(state),
 );
+ipcMain.handle("save-real-draw", async (_event, payload) => saveRealDraw(payload));
+ipcMain.handle("save-report-svg", async (_event, payload) => saveReportSvg(payload));
 
 app.whenReady().then(() => {
   buildApplicationMenu();

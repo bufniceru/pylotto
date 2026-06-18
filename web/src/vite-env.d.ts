@@ -11,6 +11,15 @@ interface PylottoDesktopApi {
   saveNextPossibleDrawState: (
     state: NextPossibleDrawState,
   ) => Promise<NextPossibleDrawState>;
+  saveRealDraw: (payload: {
+    date: string;
+    numbers: number[];
+    plannedNumbers: number[];
+  }) => Promise<RealDrawSaveResult>;
+  saveReportSvg: (payload: {
+    fileName: string;
+    svg: string;
+  }) => Promise<{ path: string }>;
   windowControl: (action: "close") => void;
   onMenuAction: (
     callback: (message: { action: string; payload?: unknown }) => void,
@@ -21,6 +30,15 @@ interface NextPossibleDrawState {
   selectedNumbers: number[];
   droppedNumbers: number[];
   uncertainNumbers: number[];
+}
+
+interface RealDrawSaveResult {
+  date: string;
+  numbers: number[];
+  matchedNumbers: number[];
+  matchCount: number;
+  totalDraws: number;
+  yamlPath: string;
 }
 
 declare global {

@@ -6,11 +6,20 @@ import type { PredictiveScoreGrid, PredictiveScoreNumber, WorkspaceTab, Workspac
 const nextDrawStorageKey = "pylotto.nextPossibleDrawNumbers";
 const droppedDrawStorageKey = "pylotto.nextPossibleDrawDroppedNumbers";
 const uncertainDrawStorageKey = "pylotto.nextPossibleDrawUncertainNumbers";
-type NextDrawTab = "possible" | "scoreGrid";
+type NextDrawTab = "possible" | "scoreGrid" | "real";
 interface NextPossibleDrawState {
   selectedNumbers: number[];
   droppedNumbers: number[];
   uncertainNumbers: number[];
+}
+
+function todayIsoDate(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 const emit = defineEmits<{
@@ -109,6 +118,11 @@ const nextDrawNumbers = ref<Set<number>>(new Set(localState.selectedNumbers));
 const droppedDrawNumbers = ref<Set<number>>(new Set(localState.droppedNumbers));
 const uncertainDrawNumbers = ref<Set<number>>(new Set(localState.uncertainNumbers));
 const activeTab = ref<NextDrawTab>("possible");
+const realDrawDate = ref(todayIsoDate());
+const realDrawNumbers = ref<Set<number>>(new Set());
+const realDrawSaveError = ref("");
+const realDrawSaveMessage = ref("");
+const isSavingRealDraw = ref(false);
 const selectedPredictiveRank = ref(1);
 const nextDrawCount = computed(() => nextDrawNumbers.value.size);
 const droppedDrawCount = computed(() => droppedDrawNumbers.value.size);
@@ -141,6 +155,21 @@ const selectedPredictiveNumber = computed(() => {
 });
 const selectedDrawNumbers = computed(() =>
   [...nextDrawNumbers.value].sort((left, right) => left - right),
+);
+const selectedRealDrawNumbers = computed(() =>
+  [...realDrawNumbers.value].sort((left, right) => left - right),
+);
+const realDrawMatchNumbers = computed(() => {
+  const realNumbers = new Set(selectedRealDrawNumbers.value);
+
+  return selectedDrawNumbers.value.filter((number) => realNumbers.has(number));
+});
+const realDrawMatchCount = computed(() => realDrawMatchNumbers.value.length);
+const canSaveRealDraw = computed(
+  () =>
+    selectedRealDrawNumbers.value.length === 6 &&
+    /^\d{4}-\d{2}-\d{2}$/.test(realDrawDate.value) &&
+    !isSavingRealDraw.value,
 );
 const selectedPredictiveRows = computed(() =>
   selectedDrawNumbers.value
@@ -342,6 +371,58 @@ function resetNextDrawNumbers(): void {
   nextDrawNumbers.value = new Set();
 }
 
+function toggleRealDrawNumber(number: number): void {
+  const nextNumbers = new Set(realDrawNumbers.value);
+
+  if (nextNumbers.has(number)) {
+    nextNumbers.delete(number);
+  } else if (nextNumbers.size < 6) {
+    nextNumbers.add(number);
+  } else {
+    return;
+  }
+
+  realDrawNumbers.value = nextNumbers;
+  realDrawSaveError.value = "";
+  realDrawSaveMessage.value = "";
+}
+
+function resetRealDrawNumbers(): void {
+  realDrawNumbers.value = new Set();
+  realDrawSaveError.value = "";
+  realDrawSaveMessage.value = "";
+}
+
+async function saveRealDraw(): Promise<void> {
+  if (!canSaveRealDraw.value) {
+    return;
+  }
+
+  isSavingRealDraw.value = true;
+  realDrawSaveError.value = "";
+  realDrawSaveMessage.value = "";
+
+  try {
+    const result = await window.pylottoDesktop?.saveRealDraw({
+      date: realDrawDate.value,
+      numbers: selectedRealDrawNumbers.value,
+      plannedNumbers: selectedDrawNumbers.value,
+    });
+
+    if (!result) {
+      throw new Error("Desktop API is unavailable.");
+    }
+
+    realDrawSaveMessage.value =
+      `Saved ${result.date}. Guessed ${result.matchCount} of 6.`;
+  } catch (error) {
+    realDrawSaveError.value =
+      error instanceof Error ? error.message : "Could not save the real draw.";
+  } finally {
+    isSavingRealDraw.value = false;
+  }
+}
+
 function colorChannel(start: number, end: number, ratio: number): number {
   return Math.round(start + (end - start) * ratio);
 }
@@ -438,6 +519,19 @@ onMounted(() => {
     .catch(() => {
       // Local storage remains the fallback when the desktop state file is unavailable.
     });
+
+  void window.pylottoDesktop
+    ?.loadLottoHistory()
+    .then((history) => {
+      const currentDraw = history.draws.find((draw) => draw.date === realDrawDate.value);
+
+      if (currentDraw) {
+        realDrawNumbers.value = new Set(normalizeNumbers(currentDraw.numbers, 6));
+      }
+    })
+    .catch(() => {
+      // The real draw tab remains usable for new entries if history loading fails.
+    });
 });
 </script>
 
@@ -469,6 +563,14 @@ onMounted(() => {
         >
           Predictive Score Grid
         </button>
+        <button
+          class="view-tab"
+          :class="{ active: activeTab === 'real' }"
+          type="button"
+          @click="activeTab = 'real'"
+        >
+          Real Draw
+        </button>
       </nav>
 
       <div class="dialog-toolbar">
@@ -493,6 +595,12 @@ onMounted(() => {
           Model Agreement
           <strong>{{ predictionAgreementScore }}%</strong>
           <span>{{ predictionAgreementLabel }}</span>
+        </p>
+        <p class="reference-pill next-draw-reference real-draw-pill">
+          Guessed
+          <strong>{{ realDrawMatchCount }}</strong>
+          of
+          <strong>6</strong>
         </p>
         <button
           class="ghost-button compact-button"
@@ -623,6 +731,77 @@ onMounted(() => {
               Last
             </button>
           </div>
+        </div>
+
+        <div v-else-if="activeTab === 'real'" class="draw-section real-draw-section">
+          <div class="real-draw-controls">
+            <label class="rank-input-label real-draw-date-label">
+              Date
+              <input v-model="realDrawDate" type="date">
+            </label>
+            <button
+              class="ghost-button compact-button"
+              :disabled="selectedRealDrawNumbers.length === 0"
+              type="button"
+              @click="resetRealDrawNumbers"
+            >
+              Reset
+            </button>
+            <button
+              class="action-button primary compact-button"
+              :disabled="!canSaveRealDraw"
+              type="button"
+              @click="saveRealDraw"
+            >
+              {{ isSavingRealDraw ? "Saving" : "Save Draw" }}
+            </button>
+          </div>
+
+          <div class="draw-grid" role="grid" aria-label="Real draw numbers">
+            <button
+              v-for="number in 49"
+              :key="number"
+              class="draw-cell draw-cell-button real-draw-cell"
+              :class="{
+                selected: realDrawNumbers.has(number),
+                matched: realDrawNumbers.has(number) && nextDrawNumbers.has(number),
+                unavailable: !realDrawNumbers.has(number) && selectedRealDrawNumbers.length >= 6,
+              }"
+              :aria-disabled="!realDrawNumbers.has(number) && selectedRealDrawNumbers.length >= 6"
+              :aria-pressed="realDrawNumbers.has(number)"
+              type="button"
+              role="gridcell"
+              @click="toggleRealDrawNumber(number)"
+            >
+              {{ number }}
+            </button>
+          </div>
+
+          <div class="real-draw-result">
+            <p class="reference-pill next-draw-reference">
+              Real Draw
+              <strong>{{ selectedRealDrawNumbers.length }}</strong>
+              of
+              <strong>6</strong>
+            </p>
+            <p class="reference-pill next-draw-reference real-draw-pill">
+              Guessed
+              <strong>{{ realDrawMatchCount }}</strong>
+              of
+              <strong>6</strong>
+            </p>
+            <p class="reference-pill next-draw-reference">
+              Matches
+              <strong>{{ realDrawMatchNumbers.length ? realDrawMatchNumbers.join(", ") : "none" }}</strong>
+            </p>
+          </div>
+
+          <p v-if="realDrawSaveMessage" class="real-draw-status success">
+            {{ realDrawSaveMessage }}
+          </p>
+          <p v-else-if="realDrawSaveError" class="real-draw-status error">
+            {{ realDrawSaveError }}
+          </p>
         </div>
       </div>
     </section>

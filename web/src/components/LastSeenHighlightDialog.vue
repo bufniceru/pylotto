@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
+import { buildLastSeenHighlightReportSvg } from "../lib/lastSeenHighlightReport";
 import type { HighlightView, LastSeenHighlightModel, WorkspaceTab, WorkspaceView } from "../types";
 
 const props = defineProps<{
@@ -7,6 +8,7 @@ const props = defineProps<{
   drawCountValue: number;
   activeView: HighlightView;
   activeWorkspaceView: WorkspaceView;
+  last50Model: LastSeenHighlightModel;
   model: LastSeenHighlightModel;
   referenceDrawOffset: number;
   workspaceTabs: WorkspaceTab[];
@@ -27,6 +29,8 @@ const chartTop = 90;
 const chartBottom = 45;
 const chartRight = 30;
 const rowHeight = 30;
+const pointRadius = 13.5;
+const undrawnStripWidth = (pointRadius * 2) / 3;
 const chartHeight = computed(() =>
   Math.max(320, chartTop + props.model.drawCount * rowHeight + chartBottom),
 );
@@ -35,7 +39,36 @@ const plotWidth = svgWidth - chartLeft - chartRight;
 const rowDrawIndices = computed(() =>
   Array.from({ length: props.model.drawCount }, (_value, index) => props.model.drawCount - 1 - index),
 );
+const undrawnStrips = computed(() => {
+  if (props.model.referenceDrawIndex === null) {
+    return [];
+  }
+
+  return props.model.points
+    .filter(
+      (point) =>
+        point.highlighted &&
+        props.model.referenceDrawIndex !== null &&
+        point.drawIndex < props.model.referenceDrawIndex,
+    )
+    .map((point) => {
+      const pointY = yForDraw(point.drawIndex);
+      const referenceY = yForDraw(props.model.referenceDrawIndex ?? point.drawIndex);
+      const topY = referenceY + pointRadius;
+      const bottomY = pointY - pointRadius;
+
+      return {
+        key: `${point.drawIndex}-${point.number}`,
+        x: xForNumber(point.number) - undrawnStripWidth / 2,
+        y: topY,
+        height: Math.max(0, bottomY - topY),
+      };
+    })
+    .filter((strip) => strip.height > 0);
+});
 const numberPopup = ref<{ number: number; gapUntilCurrent: number | null } | null>(null);
+const exportState = ref<"idle" | "saving" | "saved" | "error">("idle");
+const exportedReportPath = ref<string | null>(null);
 let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
 function clearLongPressTimer(): void {
@@ -81,6 +114,33 @@ function cancelLongPress(): void {
 
 function closeLongPressPopup(): void {
   numberPopup.value = null;
+}
+
+function last50ReportFileName(): string {
+  const referenceDate = props.last50Model.referenceDrawDate ?? "latest";
+  return `last-seen-highlight-last-50-${referenceDate}.svg`;
+}
+
+async function exportLast50Svg(): Promise<void> {
+  exportState.value = "saving";
+  exportedReportPath.value = null;
+
+  try {
+    const svg = buildLastSeenHighlightReportSvg(props.last50Model);
+    const result = await window.pylottoDesktop?.saveReportSvg({
+      fileName: last50ReportFileName(),
+      svg,
+    });
+
+    if (result === undefined) {
+      throw new Error("Report export is only available in the desktop app.");
+    }
+
+    exportedReportPath.value = result.path;
+    exportState.value = "saved";
+  } catch {
+    exportState.value = "error";
+  }
 }
 
 function xForNumber(number: number): number {
@@ -198,9 +258,25 @@ onBeforeUnmount(() => {
           Next Draw
         </button>
 
+        <button
+          class="action-button"
+          :disabled="exportState === 'saving' || last50Model.drawCount === 0"
+          type="button"
+          @click="exportLast50Svg"
+        >
+          {{ exportState === "saving" ? "Saving..." : "Save Last 50 SVG" }}
+        </button>
+
         <p class="reference-pill">
           Reference draw:
           <strong>{{ model.referenceDrawDate ?? "none" }}</strong>
+        </p>
+
+        <p v-if="exportState === 'saved'" class="report-status" :title="exportedReportPath ?? ''">
+          Saved SVG
+        </p>
+        <p v-else-if="exportState === 'error'" class="report-status error">
+          SVG export failed
         </p>
       </div>
 
@@ -228,6 +304,15 @@ onBeforeUnmount(() => {
             />
 
             <rect
+              :x="xForNumber(1) - 15"
+              :y="chartTop - 42"
+              :width="plotWidth + 30"
+              height="24"
+              class="top-number-strip"
+              rx="8"
+            />
+
+            <rect
               v-if="model.referenceDrawIndex !== null"
               :x="xForNumber(1) - 11"
               :y="yForDraw(model.referenceDrawIndex) - 14"
@@ -238,9 +323,8 @@ onBeforeUnmount(() => {
 
             <g v-for="number in 49" :key="`xt-top-${number}`">
               <text
-                v-if="number % 5 === 0"
                 :x="xForNumber(number)"
-                :y="chartTop - 18"
+                :y="chartTop - 25"
                 class="tick-label top-x-tick"
               >
                 {{ number }}
@@ -275,6 +359,17 @@ onBeforeUnmount(() => {
               </text>
             </g>
 
+            <rect
+              v-for="strip in undrawnStrips"
+              :key="`undrawn-${strip.key}`"
+              :height="strip.height"
+              :width="undrawnStripWidth"
+              :x="strip.x"
+              :y="strip.y"
+              class="undrawn-strip"
+              rx="4.5"
+            />
+
             <g v-for="point in model.points" :key="`${point.drawIndex}-${point.number}`">
               <circle
                 :cx="xForNumber(point.number)"
@@ -286,7 +381,7 @@ onBeforeUnmount(() => {
                       ? 'point-highlighted'
                       : 'point-default',
                 ]"
-                r="13.5"
+                :r="pointRadius"
                 @pointercancel="cancelLongPress"
                 @pointerdown="handlePointPointerDown($event, point.number, point.drawIndex)"
                 @pointerleave="cancelLongPress"

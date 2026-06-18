@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
+import { buildLastSeenGapHighlightReportSvg } from "../lib/lastSeenHighlightReport";
 import type { HighlightView, LastSeenGapHighlightModel, WorkspaceTab, WorkspaceView } from "../types";
 
 const props = defineProps<{
@@ -7,6 +8,7 @@ const props = defineProps<{
   drawCountValue: number;
   activeView: HighlightView;
   activeWorkspaceView: WorkspaceView;
+  last50Model: LastSeenGapHighlightModel;
   model: LastSeenGapHighlightModel;
   referenceDrawOffset: number;
   workspaceTabs: WorkspaceTab[];
@@ -36,6 +38,8 @@ const rowDrawIndices = computed(() =>
   Array.from({ length: props.model.drawCount }, (_value, index) => props.model.drawCount - 1 - index),
 );
 const longPressGap = ref<number | null>(null);
+const exportState = ref<"idle" | "saving" | "saved" | "error">("idle");
+const exportedReportPath = ref<string | null>(null);
 let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
 function clearLongPressTimer(): void {
@@ -59,6 +63,33 @@ function cancelLongPress(): void {
 
 function closeLongPressPopup(): void {
   longPressGap.value = null;
+}
+
+function last50ReportFileName(): string {
+  const referenceDate = props.last50Model.referenceDrawDate ?? "latest";
+  return `last-seen-gap-highlight-last-50-${referenceDate}.svg`;
+}
+
+async function exportLast50Svg(): Promise<void> {
+  exportState.value = "saving";
+  exportedReportPath.value = null;
+
+  try {
+    const svg = buildLastSeenGapHighlightReportSvg(props.last50Model);
+    const result = await window.pylottoDesktop?.saveReportSvg({
+      fileName: last50ReportFileName(),
+      svg,
+    });
+
+    if (result === undefined) {
+      throw new Error("Report export is only available in the desktop app.");
+    }
+
+    exportedReportPath.value = result.path;
+    exportState.value = "saved";
+  } catch {
+    exportState.value = "error";
+  }
 }
 
 function xForGap(gap: number): number {
@@ -191,9 +222,25 @@ onBeforeUnmount(() => {
           Next Draw
         </button>
 
+        <button
+          class="action-button"
+          :disabled="exportState === 'saving' || last50Model.drawCount === 0"
+          type="button"
+          @click="exportLast50Svg"
+        >
+          {{ exportState === "saving" ? "Saving..." : "Save Last 50 SVG" }}
+        </button>
+
         <p class="reference-pill">
           Reference draw:
           <strong>{{ model.referenceDrawDate ?? "none" }}</strong>
+        </p>
+
+        <p v-if="exportState === 'saved'" class="report-status" :title="exportedReportPath ?? ''">
+          Saved SVG
+        </p>
+        <p v-else-if="exportState === 'error'" class="report-status error">
+          SVG export failed
         </p>
       </div>
 

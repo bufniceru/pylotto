@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("pylottoDesktop", {
   loadNextPossibleDrawState: () => ipcRenderer.invoke("load-next-possible-draw-state"),
   saveNextPossibleDrawState: (state) =>
     ipcRenderer.invoke("save-next-possible-draw-state", state),
+  saveRealDraw: (payload) => ipcRenderer.invoke("save-real-draw", payload),
+  saveReportSvg: (payload) => ipcRenderer.invoke("save-report-svg", payload),
   windowControl: (action) => {
     ipcRenderer.send("window-control", action);
   },

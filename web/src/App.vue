@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import DrawsDialog from "./components/DrawsDialog.vue";
+import FreshnessReportDialog from "./components/FreshnessReportDialog.vue";
 import LastSeenDifferenceHighlightDialog from "./components/LastSeenDifferenceHighlightDialog.vue";
 import LastSeenGapHighlightDialog from "./components/LastSeenGapHighlightDialog.vue";
 import LastSeenHighlightDialog from "./components/LastSeenHighlightDialog.vue";
 import NextPossibleDrawDialog from "./components/NextPossibleDrawDialog.vue";
+import ProximityReportDialog from "./components/ProximityReportDialog.vue";
+import { buildFreshnessModel } from "./lib/freshness";
 import { buildHistory } from "./lib/history";
 import { buildLastSeenDifferenceHighlightModel } from "./lib/lastSeenDifferenceHighlight";
 import { buildLastSeenGapHighlightModel } from "./lib/lastSeenGapHighlight";
 import { buildLastSeenHighlightModel } from "./lib/lastSeenHighlight";
+import { buildProximityModel } from "./lib/proximity";
 import type { EnrichedHistory, HighlightView, RawHistory, WorkspaceTab, WorkspaceView } from "./types";
 
 const rawHistory = ref<RawHistory | null>(null);
@@ -17,6 +21,8 @@ const isLoading = ref(true);
 const loadError = ref<string | null>(null);
 
 const isHighlightViewsOpen = ref(false);
+const isFreshnessReportOpen = ref(false);
+const isProximityReportOpen = ref(false);
 const activeHighlightView = ref<HighlightView>("number");
 const isDrawsOpen = ref(false);
 const isNextPossibleDrawOpen = ref(false);
@@ -34,6 +40,8 @@ const workspaceLabels: Record<WorkspaceView, string> = {
   draws: "Draws",
   nextPossibleDraw: "Next Possible Draw",
   highlights: "Highlights",
+  freshness: "Freshness",
+  proximity: "Proximity",
 };
 const workspaceTabs = computed<WorkspaceTab[]>(() =>
   openWorkspaceViews.value.map((id) => ({
@@ -45,12 +53,18 @@ const workspaceTabs = computed<WorkspaceTab[]>(() =>
 const model = computed(() =>
   buildLastSeenHighlightModel(history.value, drawCount.value, referenceDrawOffset.value),
 );
+const lastSeenLast50Model = computed(() =>
+  buildLastSeenHighlightModel(history.value, Math.min(50, totalDraws.value), 0),
+);
 const gapModel = computed(() =>
   buildLastSeenGapHighlightModel(
     history.value,
     gapDrawCount.value,
     gapReferenceDrawOffset.value,
   ),
+);
+const lastSeenGapLast50Model = computed(() =>
+  buildLastSeenGapHighlightModel(history.value, Math.min(50, totalDraws.value), 0),
 );
 const differenceModel = computed(() =>
   buildLastSeenDifferenceHighlightModel(
@@ -59,6 +73,11 @@ const differenceModel = computed(() =>
     differenceReferenceDrawOffset.value,
   ),
 );
+const lastSeenDifferenceLast50Model = computed(() =>
+  buildLastSeenDifferenceHighlightModel(history.value, Math.min(50, totalDraws.value), 0),
+);
+const freshnessModel = computed(() => buildFreshnessModel(history.value));
+const proximityModel = computed(() => buildProximityModel(history.value));
 
 function openLastSeenHighlight(): void {
   activeHighlightView.value = "number";
@@ -83,10 +102,20 @@ function openNextPossibleDraw(): void {
   openWorkspaceView("nextPossibleDraw");
 }
 
+function openFreshnessReport(): void {
+  openWorkspaceView("freshness");
+}
+
+function openProximityReport(): void {
+  openWorkspaceView("proximity");
+}
+
 function syncWorkspaceFlags(): void {
   isDrawsOpen.value = activeWorkspaceView.value === "draws";
   isNextPossibleDrawOpen.value = activeWorkspaceView.value === "nextPossibleDraw";
   isHighlightViewsOpen.value = activeWorkspaceView.value === "highlights";
+  isFreshnessReportOpen.value = activeWorkspaceView.value === "freshness";
+  isProximityReportOpen.value = activeWorkspaceView.value === "proximity";
 }
 
 function openWorkspaceView(view: WorkspaceView): void {
@@ -230,6 +259,14 @@ onMounted(() => {
       if (message.action === "openNextPossibleDraw") {
         openNextPossibleDraw();
       }
+
+      if (message.action === "openFreshnessReport") {
+        openFreshnessReport();
+      }
+
+      if (message.action === "openProximityReport") {
+        openProximityReport();
+      }
     }) ?? null;
 });
 
@@ -260,6 +297,10 @@ onBeforeUnmount(() => {
         <strong>Statistics / Views / Last Seen Gap Highlight</strong>
         or
         <strong>Statistics / Views / Last Seen Difference Highlight</strong>
+        or
+        <strong>Statistics / Views / Freshness Report</strong>
+        or
+        <strong>Statistics / Views / Proximity Report</strong>
         to open runtime YAML-driven statistics dialogs.
       </p>
 
@@ -304,6 +345,22 @@ onBeforeUnmount(() => {
         >
           Open Last Seen Difference Highlight
         </button>
+        <button
+          class="action-button"
+          :disabled="isLoading || !!loadError || totalDraws === 0"
+          type="button"
+          @click="openFreshnessReport"
+        >
+          Open Freshness Report
+        </button>
+        <button
+          class="action-button"
+          :disabled="isLoading || !!loadError || totalDraws === 0"
+          type="button"
+          @click="openProximityReport"
+        >
+          Open Proximity Report
+        </button>
       </div>
 
       <dl class="meta-grid">
@@ -345,6 +402,7 @@ onBeforeUnmount(() => {
       :active-workspace-view="activeWorkspaceView ?? 'highlights'"
       :draw-count="totalDraws"
       :draw-count-value="drawCount"
+      :last-50-model="lastSeenLast50Model"
       :model="model"
       :reference-draw-offset="referenceDrawOffset"
       :workspace-tabs="workspaceTabs"
@@ -362,6 +420,7 @@ onBeforeUnmount(() => {
       :active-workspace-view="activeWorkspaceView ?? 'highlights'"
       :draw-count="totalDraws"
       :draw-count-value="gapDrawCount"
+      :last-50-model="lastSeenGapLast50Model"
       :model="gapModel"
       :reference-draw-offset="gapReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
@@ -379,6 +438,7 @@ onBeforeUnmount(() => {
       :active-workspace-view="activeWorkspaceView ?? 'highlights'"
       :draw-count="totalDraws"
       :draw-count-value="differenceDrawCount"
+      :last-50-model="lastSeenDifferenceLast50Model"
       :model="differenceModel"
       :reference-draw-offset="differenceReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
@@ -388,6 +448,24 @@ onBeforeUnmount(() => {
       @switch-view="activeHighlightView = $event"
       @switch-workspace-view="switchWorkspaceView"
       @update-draw-count="updateDifferenceDrawCount"
+    />
+
+    <FreshnessReportDialog
+      v-if="isFreshnessReportOpen && !isLoading && !loadError"
+      :active-workspace-view="activeWorkspaceView ?? 'freshness'"
+      :model="freshnessModel"
+      :workspace-tabs="workspaceTabs"
+      @close="closeActiveWorkspaceView"
+      @switch-workspace-view="switchWorkspaceView"
+    />
+
+    <ProximityReportDialog
+      v-if="isProximityReportOpen && !isLoading && !loadError"
+      :active-workspace-view="activeWorkspaceView ?? 'proximity'"
+      :model="proximityModel"
+      :workspace-tabs="workspaceTabs"
+      @close="closeActiveWorkspaceView"
+      @switch-workspace-view="switchWorkspaceView"
     />
   </main>
 </template>

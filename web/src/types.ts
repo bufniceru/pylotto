@@ -26,7 +26,12 @@ export interface EnrichedHistory {
 }
 
 export type HighlightView = "number" | "gap" | "difference";
-export type WorkspaceView = "draws" | "nextPossibleDraw" | "highlights";
+export type WorkspaceView =
+  | "draws"
+  | "nextPossibleDraw"
+  | "highlights"
+  | "freshness"
+  | "proximity";
 
 export interface WorkspaceTab {
   id: WorkspaceView;
@@ -106,4 +111,114 @@ export interface LastSeenDifferenceHighlightModel {
   maxReferenceOffset: number;
   referenceDrawIndex: number | null;
   referenceDrawDate: string | null;
+}
+
+export interface FreshnessBucket {
+  id: string;
+  label: string;
+  description: string;
+  color: string;
+}
+
+export interface FreshnessSituation {
+  signature: string;
+  count: number;
+  percent: number;
+  latestDate: string;
+  examples: string[];
+}
+
+export interface FreshnessBucketSummary {
+  bucketId: string;
+  label: string;
+  drawnCount: number;
+  exposureCount: number;
+  hitRate: number;
+  drawShare: number;
+}
+
+export interface FreshnessPrediction {
+  number: number;
+  bucketId: string;
+  label: string;
+  currentGap: number | null;
+  hitRate: number;
+  rank: number;
+}
+
+export interface FreshnessDrawProfile {
+  date: string;
+  signature: string;
+  labels: string[];
+  numbers: {
+    number: number;
+    gap: number | null;
+    bucketId: string;
+    label: string;
+  }[];
+}
+
+export interface FreshnessModel {
+  buckets: FreshnessBucket[];
+  drawCount: number;
+  situationCount: number;
+  situations: FreshnessSituation[];
+  bucketSummaries: FreshnessBucketSummary[];
+  predictions: FreshnessPrediction[];
+  latestProfile: FreshnessDrawProfile | null;
+}
+
+export interface ProximityBucket {
+  id: string;
+  label: string;
+  description: string;
+  color: string;
+}
+
+export interface ProximitySituation {
+  signature: string;
+  count: number;
+  percent: number;
+  latestDate: string;
+  examples: string[];
+}
+
+export interface ProximityBucketSummary {
+  bucketId: string;
+  label: string;
+  count: number;
+  share: number;
+  averageNearestDistance: number;
+}
+
+export interface ProximityPrediction {
+  number: number;
+  bucketId: string;
+  label: string;
+  appearances: number;
+  score: number;
+  rank: number;
+}
+
+export interface ProximityDrawProfile {
+  date: string;
+  signature: string;
+  numbers: {
+    number: number;
+    nearestDistance: number;
+    leftDistance: number | null;
+    rightDistance: number | null;
+    bucketId: string;
+    label: string;
+  }[];
+}
+
+export interface ProximityModel {
+  buckets: ProximityBucket[];
+  drawCount: number;
+  situationCount: number;
+  situations: ProximitySituation[];
+  bucketSummaries: ProximityBucketSummary[];
+  predictions: ProximityPrediction[];
+  latestProfile: ProximityDrawProfile | null;
 }
