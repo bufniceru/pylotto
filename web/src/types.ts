@@ -31,7 +31,8 @@ export type WorkspaceView =
   | "nextPossibleDraw"
   | "highlights"
   | "freshness"
-  | "proximity";
+  | "proximity"
+  | "markovScore";
 
 export interface WorkspaceTab {
   id: WorkspaceView;
@@ -221,4 +222,67 @@ export interface ProximityModel {
   bucketSummaries: ProximityBucketSummary[];
   predictions: ProximityPrediction[];
   latestProfile: ProximityDrawProfile | null;
+}
+
+export interface MarkovScoreBand {
+  id: string;
+  label: string;
+  description: string;
+  color: string;
+}
+
+export interface MarkovScoreSituation {
+  signature: string;
+  count: number;
+  percent: number;
+  latestDate: string;
+  examples: string[];
+}
+
+export interface MarkovScoreBucketSummary {
+  bucket: number;
+  weightedOpportunities: number;
+  weightedHits: number;
+  probability: number;
+  score: number;
+  bandId: string;
+  label: string;
+}
+
+export interface MarkovScorePrediction {
+  number: number;
+  rank: number;
+  score: number;
+  probability: number;
+  currentGap: number;
+  bucket: number;
+  bandId: string;
+  label: string;
+}
+
+export interface MarkovScoreDrawProfile {
+  date: string;
+  signature: string;
+  numbers: {
+    number: number;
+    gap: number;
+    bucket: number;
+    probability: number;
+    score: number;
+    bandId: string;
+    label: string;
+  }[];
+}
+
+export interface MarkovScoreModel {
+  bands: MarkovScoreBand[];
+  drawCount: number;
+  situationCount: number;
+  halfLife: number;
+  priorStrength: number;
+  maxGapBucket: number;
+  situations: MarkovScoreSituation[];
+  bucketSummaries: MarkovScoreBucketSummary[];
+  predictions: MarkovScorePrediction[];
+  latestProfile: MarkovScoreDrawProfile | null;
 }

@@ -14,7 +14,7 @@ def main() -> int:
         load_draws_from_yaml,
     )
 
-    source_path = root / "src" / "pylotto" / "lotto_results.yaml"
+    source_path = root / "data" / "lotto_results.yaml"
     target_path = root / "web" / "src" / "data" / "predictive-score-grid.json"
 
     dataset = load_draws_from_yaml(source_path)

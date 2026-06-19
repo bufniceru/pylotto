@@ -1,14 +1,21 @@
 <script setup lang="ts">
+import StatisticsReferenceNavigation from "./StatisticsReferenceNavigation.vue";
 import type { ProximityModel, WorkspaceTab, WorkspaceView } from "../types";
 
 const props = defineProps<{
   activeWorkspaceView: WorkspaceView;
+  maxReferenceDrawOffset: number;
   model: ProximityModel;
+  referenceDrawOffset: number;
   workspaceTabs: WorkspaceTab[];
 }>();
 
 const emit = defineEmits<{
   close: [];
+  firstReferenceDraw: [];
+  latestReferenceDraw: [];
+  nextReferenceDraw: [];
+  previousReferenceDraw: [];
   switchWorkspaceView: [value: WorkspaceView];
 }>();
 
@@ -56,6 +63,16 @@ function xForNumber(number: number): number {
           {{ tab.label }}
         </button>
       </nav>
+
+      <StatisticsReferenceNavigation
+        :max-reference-draw-offset="maxReferenceDrawOffset"
+        :reference-draw-date="model.latestProfile?.date ?? null"
+        :reference-draw-offset="referenceDrawOffset"
+        @first-reference-draw="emit('firstReferenceDraw')"
+        @latest-reference-draw="emit('latestReferenceDraw')"
+        @next-reference-draw="emit('nextReferenceDraw')"
+        @previous-reference-draw="emit('previousReferenceDraw')"
+      />
 
       <div class="dialog-toolbar">
         <p class="reference-pill">

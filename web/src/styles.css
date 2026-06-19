@@ -761,6 +761,55 @@ input {
   overflow: auto;
 }
 
+.reference-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(23, 32, 51, 0.08);
+  background: #f8fafc;
+}
+
+.reference-navigation-button {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(23, 32, 51, 0.12);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #25334b;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.reference-navigation-button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.reference-navigation-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: min(360px, 40vw);
+  justify-content: center;
+  margin: 0;
+  padding: 7px 12px;
+  border: 1px solid rgba(23, 32, 51, 0.08);
+  border-radius: 8px;
+  background: #eef3fb;
+  color: #4c5d78;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.reference-navigation-label strong {
+  color: #25334b;
+}
+
 .freshness-band,
 .freshness-panel {
   border: 1px solid rgba(23, 32, 51, 0.08);
@@ -872,6 +921,10 @@ input {
 
 .freshness-summary-table.compact .freshness-row {
   grid-template-columns: 0.45fr 0.45fr 1fr 0.55fr 0.7fr;
+}
+
+.markov-summary-table .freshness-row {
+  grid-template-columns: 0.55fr 0.7fr 0.8fr 0.8fr 0.9fr;
 }
 
 .freshness-row-head {

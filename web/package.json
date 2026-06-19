@@ -11,7 +11,7 @@
     "build": "vue-tsc --noEmit && vite build",
     "build:electron": "vue-tsc --noEmit && vite build --mode electron",
     "electron": "npm run build:electron && electron .",
-    "electron:build": "npm run build:electron && electron-builder --win portable"
+    "electron:build": "npm run build:electron && electron-builder --win portable && node electron/copy-portable-data.cjs"
   },
   "dependencies": {
     "@vitejs/plugin-vue": "^6.0.0",
@@ -36,9 +36,9 @@
       "electron/**/*",
       "package.json"
     ],
-    "extraResources": [
+    "extraFiles": [
       {
-        "from": "../src/pylotto/lotto_results.yaml",
+        "from": "../data/lotto_results.yaml",
         "to": "data/lotto_results.yaml"
       }
     ],

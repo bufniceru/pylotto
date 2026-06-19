@@ -5,6 +5,7 @@ import FreshnessReportDialog from "./components/FreshnessReportDialog.vue";
 import LastSeenDifferenceHighlightDialog from "./components/LastSeenDifferenceHighlightDialog.vue";
 import LastSeenGapHighlightDialog from "./components/LastSeenGapHighlightDialog.vue";
 import LastSeenHighlightDialog from "./components/LastSeenHighlightDialog.vue";
+import MarkovScoreReportDialog from "./components/MarkovScoreReportDialog.vue";
 import NextPossibleDrawDialog from "./components/NextPossibleDrawDialog.vue";
 import ProximityReportDialog from "./components/ProximityReportDialog.vue";
 import { buildFreshnessModel } from "./lib/freshness";
@@ -12,6 +13,7 @@ import { buildHistory } from "./lib/history";
 import { buildLastSeenDifferenceHighlightModel } from "./lib/lastSeenDifferenceHighlight";
 import { buildLastSeenGapHighlightModel } from "./lib/lastSeenGapHighlight";
 import { buildLastSeenHighlightModel } from "./lib/lastSeenHighlight";
+import { buildMarkovScoreModel } from "./lib/markovScore";
 import { buildProximityModel } from "./lib/proximity";
 import type { EnrichedHistory, HighlightView, RawHistory, WorkspaceTab, WorkspaceView } from "./types";
 
@@ -23,6 +25,7 @@ const loadError = ref<string | null>(null);
 const isHighlightViewsOpen = ref(false);
 const isFreshnessReportOpen = ref(false);
 const isProximityReportOpen = ref(false);
+const isMarkovScoreReportOpen = ref(false);
 const activeHighlightView = ref<HighlightView>("number");
 const isDrawsOpen = ref(false);
 const isNextPossibleDrawOpen = ref(false);
@@ -34,14 +37,26 @@ const gapDrawCount = ref(1);
 const gapReferenceDrawOffset = ref(0);
 const differenceDrawCount = ref(1);
 const differenceReferenceDrawOffset = ref(0);
+const statisticsReferenceDrawOffset = ref(0);
 
 const totalDraws = computed(() => history.value.draws.length);
+const maxStatisticsReferenceDrawOffset = computed(() => Math.max(totalDraws.value - 1, 0));
+const statisticsReferenceHistory = computed<EnrichedHistory>(() => {
+  if (statisticsReferenceDrawOffset.value <= 0) {
+    return history.value;
+  }
+
+  return {
+    draws: history.value.draws.slice(0, -statisticsReferenceDrawOffset.value),
+  };
+});
 const workspaceLabels: Record<WorkspaceView, string> = {
   draws: "Draws",
   nextPossibleDraw: "Next Possible Draw",
   highlights: "Highlights",
   freshness: "Freshness",
   proximity: "Proximity",
+  markovScore: "100 Markov Score",
 };
 const workspaceTabs = computed<WorkspaceTab[]>(() =>
   openWorkspaceViews.value.map((id) => ({
@@ -76,8 +91,9 @@ const differenceModel = computed(() =>
 const lastSeenDifferenceLast50Model = computed(() =>
   buildLastSeenDifferenceHighlightModel(history.value, Math.min(50, totalDraws.value), 0),
 );
-const freshnessModel = computed(() => buildFreshnessModel(history.value));
-const proximityModel = computed(() => buildProximityModel(history.value));
+const freshnessModel = computed(() => buildFreshnessModel(statisticsReferenceHistory.value));
+const proximityModel = computed(() => buildProximityModel(statisticsReferenceHistory.value));
+const markovScoreModel = computed(() => buildMarkovScoreModel(statisticsReferenceHistory.value));
 
 function openLastSeenHighlight(): void {
   activeHighlightView.value = "number";
@@ -110,12 +126,17 @@ function openProximityReport(): void {
   openWorkspaceView("proximity");
 }
 
+function openMarkovScoreReport(): void {
+  openWorkspaceView("markovScore");
+}
+
 function syncWorkspaceFlags(): void {
   isDrawsOpen.value = activeWorkspaceView.value === "draws";
   isNextPossibleDrawOpen.value = activeWorkspaceView.value === "nextPossibleDraw";
   isHighlightViewsOpen.value = activeWorkspaceView.value === "highlights";
   isFreshnessReportOpen.value = activeWorkspaceView.value === "freshness";
   isProximityReportOpen.value = activeWorkspaceView.value === "proximity";
+  isMarkovScoreReportOpen.value = activeWorkspaceView.value === "markovScore";
 }
 
 function openWorkspaceView(view: WorkspaceView): void {
@@ -189,6 +210,14 @@ function showPreviousDraw(): void {
   );
 }
 
+function showFirstDraw(): void {
+  referenceDrawOffset.value = model.value.maxReferenceOffset;
+}
+
+function showLatestDraw(): void {
+  referenceDrawOffset.value = 0;
+}
+
 function showPreviousGapDraw(): void {
   gapReferenceDrawOffset.value = Math.min(
     gapReferenceDrawOffset.value + 1,
@@ -196,11 +225,27 @@ function showPreviousGapDraw(): void {
   );
 }
 
+function showFirstGapDraw(): void {
+  gapReferenceDrawOffset.value = gapModel.value.maxReferenceOffset;
+}
+
+function showLatestGapDraw(): void {
+  gapReferenceDrawOffset.value = 0;
+}
+
 function showPreviousDifferenceDraw(): void {
   differenceReferenceDrawOffset.value = Math.min(
     differenceReferenceDrawOffset.value + 1,
     differenceModel.value.maxReferenceOffset,
   );
+}
+
+function showFirstDifferenceDraw(): void {
+  differenceReferenceDrawOffset.value = differenceModel.value.maxReferenceOffset;
+}
+
+function showLatestDifferenceDraw(): void {
+  differenceReferenceDrawOffset.value = 0;
 }
 
 function showNextDraw(): void {
@@ -213,6 +258,25 @@ function showNextGapDraw(): void {
 
 function showNextDifferenceDraw(): void {
   differenceReferenceDrawOffset.value = Math.max(differenceReferenceDrawOffset.value - 1, 0);
+}
+
+function showPreviousStatisticsReferenceDraw(): void {
+  statisticsReferenceDrawOffset.value = Math.min(
+    statisticsReferenceDrawOffset.value + 1,
+    maxStatisticsReferenceDrawOffset.value,
+  );
+}
+
+function showFirstStatisticsReferenceDraw(): void {
+  statisticsReferenceDrawOffset.value = maxStatisticsReferenceDrawOffset.value;
+}
+
+function showNextStatisticsReferenceDraw(): void {
+  statisticsReferenceDrawOffset.value = Math.max(statisticsReferenceDrawOffset.value - 1, 0);
+}
+
+function showLatestStatisticsReferenceDraw(): void {
+  statisticsReferenceDrawOffset.value = 0;
 }
 
 let unsubscribeMenuAction: (() => void) | null = null;
@@ -229,6 +293,7 @@ onMounted(() => {
       referenceDrawOffset.value = 0;
       gapReferenceDrawOffset.value = 0;
       differenceReferenceDrawOffset.value = 0;
+      statisticsReferenceDrawOffset.value = 0;
     })
     .catch((error: unknown) => {
       loadError.value =
@@ -267,6 +332,10 @@ onMounted(() => {
       if (message.action === "openProximityReport") {
         openProximityReport();
       }
+
+      if (message.action === "openMarkovScoreReport") {
+        openMarkovScoreReport();
+      }
     }) ?? null;
 });
 
@@ -301,6 +370,8 @@ onBeforeUnmount(() => {
         <strong>Statistics / Views / Freshness Report</strong>
         or
         <strong>Statistics / Views / Proximity Report</strong>
+        or
+        <strong>Statistics / Views / 100 Markov Score</strong>
         to open runtime YAML-driven statistics dialogs.
       </p>
 
@@ -361,6 +432,14 @@ onBeforeUnmount(() => {
         >
           Open Proximity Report
         </button>
+        <button
+          class="action-button"
+          :disabled="isLoading || !!loadError || totalDraws === 0"
+          type="button"
+          @click="openMarkovScoreReport"
+        >
+          Open 100 Markov Score
+        </button>
       </div>
 
       <dl class="meta-grid">
@@ -407,6 +486,8 @@ onBeforeUnmount(() => {
       :reference-draw-offset="referenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @first-draw="showFirstDraw"
+      @latest-draw="showLatestDraw"
       @next-draw="showNextDraw"
       @previous-draw="showPreviousDraw"
       @switch-view="activeHighlightView = $event"
@@ -425,6 +506,8 @@ onBeforeUnmount(() => {
       :reference-draw-offset="gapReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @first-draw="showFirstGapDraw"
+      @latest-draw="showLatestGapDraw"
       @next-draw="showNextGapDraw"
       @previous-draw="showPreviousGapDraw"
       @switch-view="activeHighlightView = $event"
@@ -443,6 +526,8 @@ onBeforeUnmount(() => {
       :reference-draw-offset="differenceReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @first-draw="showFirstDifferenceDraw"
+      @latest-draw="showLatestDifferenceDraw"
       @next-draw="showNextDifferenceDraw"
       @previous-draw="showPreviousDifferenceDraw"
       @switch-view="activeHighlightView = $event"
@@ -453,18 +538,45 @@ onBeforeUnmount(() => {
     <FreshnessReportDialog
       v-if="isFreshnessReportOpen && !isLoading && !loadError"
       :active-workspace-view="activeWorkspaceView ?? 'freshness'"
+      :max-reference-draw-offset="maxStatisticsReferenceDrawOffset"
       :model="freshnessModel"
+      :reference-draw-offset="statisticsReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @first-reference-draw="showFirstStatisticsReferenceDraw"
+      @latest-reference-draw="showLatestStatisticsReferenceDraw"
+      @next-reference-draw="showNextStatisticsReferenceDraw"
+      @previous-reference-draw="showPreviousStatisticsReferenceDraw"
       @switch-workspace-view="switchWorkspaceView"
     />
 
     <ProximityReportDialog
       v-if="isProximityReportOpen && !isLoading && !loadError"
       :active-workspace-view="activeWorkspaceView ?? 'proximity'"
+      :max-reference-draw-offset="maxStatisticsReferenceDrawOffset"
       :model="proximityModel"
+      :reference-draw-offset="statisticsReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @first-reference-draw="showFirstStatisticsReferenceDraw"
+      @latest-reference-draw="showLatestStatisticsReferenceDraw"
+      @next-reference-draw="showNextStatisticsReferenceDraw"
+      @previous-reference-draw="showPreviousStatisticsReferenceDraw"
+      @switch-workspace-view="switchWorkspaceView"
+    />
+
+    <MarkovScoreReportDialog
+      v-if="isMarkovScoreReportOpen && !isLoading && !loadError"
+      :active-workspace-view="activeWorkspaceView ?? 'markovScore'"
+      :max-reference-draw-offset="maxStatisticsReferenceDrawOffset"
+      :model="markovScoreModel"
+      :reference-draw-offset="statisticsReferenceDrawOffset"
+      :workspace-tabs="workspaceTabs"
+      @close="closeActiveWorkspaceView"
+      @first-reference-draw="showFirstStatisticsReferenceDraw"
+      @latest-reference-draw="showLatestStatisticsReferenceDraw"
+      @next-reference-draw="showNextStatisticsReferenceDraw"
+      @previous-reference-draw="showPreviousStatisticsReferenceDraw"
       @switch-workspace-view="switchWorkspaceView"
     />
   </main>

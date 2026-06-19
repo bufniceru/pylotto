@@ -245,6 +245,10 @@ watch([nextDrawNumbers, droppedDrawNumbers, uncertainDrawNumbers], () => {
   saveNextPossibleDrawState();
 });
 
+watch(realDrawDate, (date) => {
+  void loadRealDrawForDate(date);
+});
+
 function clearClickTimer(): void {
   if (clickTimer !== null) {
     clearTimeout(clickTimer);
@@ -414,12 +418,27 @@ async function saveRealDraw(): Promise<void> {
     }
 
     realDrawSaveMessage.value =
-      `Saved ${result.date}. Guessed ${result.matchCount} of 6.`;
+      `Saved ${result.date}. Guessed ${result.matchCount} of 6. YAML: ${result.yamlPath}`;
   } catch (error) {
     realDrawSaveError.value =
       error instanceof Error ? error.message : "Could not save the real draw.";
   } finally {
     isSavingRealDraw.value = false;
+  }
+}
+
+async function loadRealDrawForDate(date: string): Promise<void> {
+  try {
+    const history = await window.pylottoDesktop?.loadLottoHistory();
+    const currentDraw = history?.draws.find((draw) => draw.date === date);
+
+    realDrawNumbers.value = new Set(
+      currentDraw ? normalizeNumbers(currentDraw.numbers, 6) : [],
+    );
+    realDrawSaveError.value = "";
+    realDrawSaveMessage.value = "";
+  } catch {
+    // The real draw tab remains usable for new entries if history loading fails.
   }
 }
 
@@ -520,18 +539,7 @@ onMounted(() => {
       // Local storage remains the fallback when the desktop state file is unavailable.
     });
 
-  void window.pylottoDesktop
-    ?.loadLottoHistory()
-    .then((history) => {
-      const currentDraw = history.draws.find((draw) => draw.date === realDrawDate.value);
-
-      if (currentDraw) {
-        realDrawNumbers.value = new Set(normalizeNumbers(currentDraw.numbers, 6));
-      }
-    })
-    .catch(() => {
-      // The real draw tab remains usable for new entries if history loading fails.
-    });
+  void loadRealDrawForDate(realDrawDate.value);
 });
 </script>
 

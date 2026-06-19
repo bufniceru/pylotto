@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import StatisticsReferenceNavigation from "./StatisticsReferenceNavigation.vue";
-import { buildFreshnessReportSvg } from "../lib/freshnessReportSvg";
-import type { FreshnessModel, WorkspaceTab, WorkspaceView } from "../types";
+import type { MarkovScoreModel, WorkspaceTab, WorkspaceView } from "../types";
 
 const props = defineProps<{
   activeWorkspaceView: WorkspaceView;
   maxReferenceDrawOffset: number;
-  model: FreshnessModel;
+  model: MarkovScoreModel;
   referenceDrawOffset: number;
   workspaceTabs: WorkspaceTab[];
 }>();
@@ -22,50 +20,26 @@ const emit = defineEmits<{
 }>();
 
 const maxSituationCount = Math.max(...props.model.situations.map((situation) => situation.count), 1);
-const maxDrawnCount = Math.max(
-  ...props.model.bucketSummaries.map((summary) => summary.drawnCount),
-  1,
-);
-const exportState = ref<"idle" | "saving" | "saved" | "error">("idle");
-const exportedReportPath = ref<string | null>(null);
+const maxBucketScore = Math.max(...props.model.bucketSummaries.map((summary) => summary.score), 1);
+const topBuckets = [...props.model.bucketSummaries]
+  .sort(
+    (left, right) =>
+      right.score - left.score ||
+      right.probability - left.probability ||
+      left.bucket - right.bucket,
+  )
+  .slice(0, 12);
 
 function percent(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
 }
 
-function gapLabel(gap: number | null): string {
-  return gap === null ? "new" : String(gap);
+function score(value: number): string {
+  return value.toFixed(1);
 }
 
-function bucketColor(bucketId: string): string {
-  return props.model.buckets.find((bucket) => bucket.id === bucketId)?.color ?? "#7b8798";
-}
-
-function reportFileName(): string {
-  const latestDate = props.model.latestProfile?.date ?? "latest";
-  return `freshness-report-${latestDate}.svg`;
-}
-
-async function exportFreshnessSvg(): Promise<void> {
-  exportState.value = "saving";
-  exportedReportPath.value = null;
-
-  try {
-    const svg = buildFreshnessReportSvg(props.model);
-    const result = await window.pylottoDesktop?.saveReportSvg({
-      fileName: reportFileName(),
-      svg,
-    });
-
-    if (result === undefined) {
-      throw new Error("Report export is only available in the desktop app.");
-    }
-
-    exportedReportPath.value = result.path;
-    exportState.value = "saved";
-  } catch {
-    exportState.value = "error";
-  }
+function bandColor(bandId: string): string {
+  return props.model.bands.find((band) => band.id === bandId)?.color ?? "#7b8798";
 }
 </script>
 
@@ -75,7 +49,7 @@ async function exportFreshnessSvg(): Promise<void> {
       <header class="dialog-header">
         <div>
           <p class="eyebrow">Statistics / Views</p>
-          <h2>Freshness Report</h2>
+          <h2>100 Markov Score</h2>
         </div>
         <button class="ghost-button" type="button" @click="emit('close')">Close</button>
       </header>
@@ -116,97 +90,93 @@ async function exportFreshnessSvg(): Promise<void> {
           Latest
           <strong>{{ model.latestProfile?.date ?? "n/a" }}</strong>
         </p>
-        <button
-          class="action-button"
-          :disabled="exportState === 'saving' || model.drawCount === 0"
-          type="button"
-          @click="exportFreshnessSvg"
-        >
-          {{ exportState === "saving" ? "Saving..." : "Save SVG" }}
-        </button>
-        <p v-if="exportState === 'saved'" class="report-status" :title="exportedReportPath ?? ''">
-          Saved SVG
+        <p class="reference-pill">
+          Half-life
+          <strong>{{ model.halfLife }}</strong>
         </p>
-        <p v-else-if="exportState === 'error'" class="report-status error">
-          SVG export failed
+        <p class="reference-pill">
+          Max bucket
+          <strong>{{ model.maxGapBucket }}</strong>
         </p>
       </div>
 
       <div class="dialog-body freshness-dialog-body">
         <section class="freshness-band">
-          <h3>Freshness Characterization</h3>
-          <div class="freshness-buckets">
+          <h3>Markov Score Bands</h3>
+          <div class="freshness-buckets markov-score-buckets">
             <article
-              v-for="bucket in model.buckets"
-              :key="bucket.id"
+              v-for="band in model.bands"
+              :key="band.id"
               class="freshness-bucket"
-              :style="{ '--bucket-color': bucket.color }"
+              :style="{ '--bucket-color': band.color }"
             >
               <span class="freshness-swatch"></span>
-              <strong>{{ bucket.label }}</strong>
-              <p>{{ bucket.description }}</p>
+              <strong>{{ band.label }}</strong>
+              <p>{{ band.description }}</p>
             </article>
           </div>
         </section>
 
         <section class="freshness-grid-layout">
           <div class="freshness-panel">
-            <h3>Historical Bucket Frequency</h3>
+            <h3>Top Gap Buckets</h3>
             <svg class="freshness-chart" viewBox="0 0 760 320" role="img">
               <line x1="44" x2="732" y1="260" y2="260" class="freshness-axis" />
               <g
-                v-for="(summary, index) in model.bucketSummaries"
-                :key="summary.bucketId"
-                :transform="`translate(${56 + index * 84}, 0)`"
+                v-for="(summary, index) in topBuckets"
+                :key="summary.bucket"
+                :transform="`translate(${52 + index * 56}, 0)`"
               >
                 <rect
-                  :height="Math.max(2, (summary.drawnCount / maxDrawnCount) * 190)"
-                  width="42"
+                  :height="Math.max(2, (summary.score / maxBucketScore) * 190)"
+                  width="34"
                   x="0"
-                  :y="260 - Math.max(2, (summary.drawnCount / maxDrawnCount) * 190)"
+                  :y="260 - Math.max(2, (summary.score / maxBucketScore) * 190)"
                   class="freshness-bar"
-                  :style="{ fill: bucketColor(summary.bucketId) }"
+                  :style="{ fill: bandColor(summary.bandId) }"
                   rx="6"
                 />
-                <text x="21" y="284" class="freshness-chart-label">{{ summary.label }}</text>
-                <text x="21" :y="248 - Math.max(2, (summary.drawnCount / maxDrawnCount) * 190)" class="freshness-chart-value">
-                  {{ summary.drawnCount }}
+                <text x="17" y="284" class="freshness-chart-label">g{{ summary.bucket }}</text>
+                <text x="17" :y="248 - Math.max(2, (summary.score / maxBucketScore) * 190)" class="freshness-chart-value">
+                  {{ score(summary.score) }}
                 </text>
               </g>
             </svg>
-            <div class="freshness-summary-table">
+            <div class="freshness-summary-table markov-summary-table">
               <div class="freshness-row freshness-row-head">
                 <span>Bucket</span>
-                <span>Drawn</span>
-                <span>Available</span>
-                <span>Hit rate</span>
+                <span>Score</span>
+                <span>Prob.</span>
+                <span>Hits</span>
+                <span>Opp.</span>
               </div>
               <div
-                v-for="summary in model.bucketSummaries"
-                :key="summary.bucketId"
+                v-for="summary in topBuckets"
+                :key="`bucket-${summary.bucket}`"
                 class="freshness-row"
               >
-                <span>{{ summary.label }}</span>
-                <span>{{ summary.drawnCount }}</span>
-                <span>{{ summary.exposureCount }}</span>
-                <span>{{ percent(summary.hitRate) }}</span>
+                <span>{{ summary.bucket }}</span>
+                <span>{{ score(summary.score) }}</span>
+                <span>{{ percent(summary.probability) }}</span>
+                <span>{{ summary.weightedHits.toFixed(1) }}</span>
+                <span>{{ summary.weightedOpportunities.toFixed(1) }}</span>
               </div>
             </div>
           </div>
 
           <div class="freshness-panel">
-            <h3>Latest Draw Profile</h3>
+            <h3>Latest Draw Markov Profile</h3>
             <p class="freshness-signature">{{ model.latestProfile?.signature ?? "n/a" }}</p>
             <div class="freshness-number-list">
               <div
                 v-for="number in model.latestProfile?.numbers ?? []"
                 :key="number.number"
                 class="freshness-number-card"
-                :style="{ '--bucket-color': bucketColor(number.bucketId) }"
+                :style="{ '--bucket-color': bandColor(number.bandId) }"
               >
                 <strong>{{ number.number }}</strong>
                 <span>{{ number.label }}</span>
-                <small>gap {{ gapLabel(number.gap) }}</small>
+                <small>score {{ score(number.score) }} | gap {{ number.gap }}</small>
               </div>
             </div>
           </div>
@@ -233,26 +203,26 @@ async function exportFreshnessSvg(): Promise<void> {
           </div>
 
           <div class="freshness-panel">
-            <h3>Next Draw Freshness Prediction</h3>
+            <h3>Next Draw Markov Ranking</h3>
             <div class="freshness-prediction-grid">
               <div
                 v-for="prediction in model.predictions"
                 :key="prediction.number"
-                class="freshness-prediction-cell"
-                :style="{ '--bucket-color': bucketColor(prediction.bucketId) }"
-                :title="`${prediction.label} | gap ${gapLabel(prediction.currentGap)} | hit rate ${percent(prediction.hitRate)}`"
+                class="freshness-prediction-cell markov-score-cell"
+                :style="{ '--bucket-color': bandColor(prediction.bandId) }"
+                :title="`${prediction.label} | score ${score(prediction.score)} | probability ${percent(prediction.probability)} | gap ${prediction.currentGap} | bucket ${prediction.bucket}`"
               >
                 <strong>{{ prediction.number }}</strong>
-                <span>#{{ prediction.rank }}</span>
+                <span>{{ score(prediction.score) }}</span>
               </div>
             </div>
             <div class="freshness-summary-table compact">
               <div class="freshness-row freshness-row-head">
                 <span>Rank</span>
                 <span>No.</span>
-                <span>Bucket</span>
+                <span>Score</span>
                 <span>Gap</span>
-                <span>Rate</span>
+                <span>Prob.</span>
               </div>
               <div
                 v-for="prediction in model.predictions.slice(0, 12)"
@@ -261,9 +231,9 @@ async function exportFreshnessSvg(): Promise<void> {
               >
                 <span>{{ prediction.rank }}</span>
                 <span>{{ prediction.number }}</span>
-                <span>{{ prediction.label }}</span>
-                <span>{{ gapLabel(prediction.currentGap) }}</span>
-                <span>{{ percent(prediction.hitRate) }}</span>
+                <span>{{ score(prediction.score) }}</span>
+                <span>{{ prediction.currentGap }}</span>
+                <span>{{ percent(prediction.probability) }}</span>
               </div>
             </div>
           </div>

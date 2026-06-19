@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
+import StatisticsReferenceNavigation from "./StatisticsReferenceNavigation.vue";
 import { buildLastSeenHighlightReportSvg } from "../lib/lastSeenHighlightReport";
 import type { HighlightView, LastSeenHighlightModel, WorkspaceTab, WorkspaceView } from "../types";
 
@@ -17,6 +18,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: [];
   updateDrawCount: [value: number];
+  firstDraw: [];
+  latestDraw: [];
   previousDraw: [];
   nextDraw: [];
   switchView: [value: HighlightView];
@@ -227,6 +230,16 @@ onBeforeUnmount(() => {
         </button>
       </nav>
 
+      <StatisticsReferenceNavigation
+        :max-reference-draw-offset="model.maxReferenceOffset"
+        :reference-draw-date="model.referenceDrawDate"
+        :reference-draw-offset="referenceDrawOffset"
+        @first-reference-draw="emit('firstDraw')"
+        @latest-reference-draw="emit('latestDraw')"
+        @next-reference-draw="emit('nextDraw')"
+        @previous-reference-draw="emit('previousDraw')"
+      />
+
       <div class="dialog-toolbar">
         <label class="field-group">
           <span>Draw count</span>
@@ -239,24 +252,6 @@ onBeforeUnmount(() => {
             @input="emit('updateDrawCount', Number(($event.target as HTMLInputElement).value))"
           />
         </label>
-
-        <button
-          class="action-button"
-          :disabled="referenceDrawOffset >= model.maxReferenceOffset"
-          type="button"
-          @click="emit('previousDraw')"
-        >
-          Previous Draw
-        </button>
-
-        <button
-          class="action-button"
-          :disabled="referenceDrawOffset <= 0"
-          type="button"
-          @click="emit('nextDraw')"
-        >
-          Next Draw
-        </button>
 
         <button
           class="action-button"

@@ -46,10 +46,31 @@ function nextPossibleDrawStatePath() {
 
 function lottoYamlPath() {
   if (isDev) {
-    return path.resolve(__dirname, "../../src/pylotto/lotto_results.yaml");
+    return path.resolve(__dirname, "../../data/lotto_results.yaml");
   }
 
-  return path.join(process.resourcesPath, "data", "lotto_results.yaml");
+  const executableDirectory = process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath("exe"));
+  return path.join(executableDirectory, "data", "lotto_results.yaml");
+}
+
+async function ensureLottoYamlPath() {
+  const candidatePaths = [
+    lottoYamlPath(),
+    path.join(path.dirname(app.getPath("exe")), "data", "lotto_results.yaml"),
+  ];
+
+  for (const candidatePath of candidatePaths) {
+    try {
+      await fs.access(candidatePath);
+      return candidatePath;
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error(`Could not find lotto_results.yaml. Checked: ${candidatePaths.join(", ")}`);
 }
 
 function reportsPath() {
@@ -61,7 +82,7 @@ function reportsPath() {
 }
 
 async function loadLottoHistory() {
-  const sourcePath = lottoYamlPath();
+  const sourcePath = await ensureLottoYamlPath();
   const fileContent = await fs.readFile(sourcePath, "utf8");
   const payload = yaml.load(fileContent) ?? {};
   const lottoResults = payload.lotto_results ?? {};
@@ -122,7 +143,7 @@ async function saveRealDraw(payload) {
     throw new Error("Real draw must contain exactly 6 unique numbers.");
   }
 
-  const sourcePath = lottoYamlPath();
+  const sourcePath = await ensureLottoYamlPath();
   const fileContent = await fs.readFile(sourcePath, "utf8");
   const parsedYaml = yaml.load(fileContent) ?? {};
   const payloadRoot = typeof parsedYaml === "object" && parsedYaml !== null ? parsedYaml : {};
@@ -251,6 +272,10 @@ function buildApplicationMenu() {
               {
                 label: "Proximity Report",
                 click: () => sendMenuAction("openProximityReport"),
+              },
+              {
+                label: "100 Markov Score",
+                click: () => sendMenuAction("openMarkovScoreReport"),
               },
             ],
           },
