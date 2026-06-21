@@ -28,6 +28,7 @@ export interface EnrichedHistory {
 export type HighlightView = "number" | "gap" | "difference";
 export type WorkspaceView =
   | "draws"
+  | "drawScores"
   | "allDraws"
   | "nextPossibleDrawPossible"
   | "nextPossibleDrawScoreGrid"

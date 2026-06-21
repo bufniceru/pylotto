@@ -278,18 +278,24 @@ export function buildFreshnessPredictionCoverCounts(
   return buildFreshnessPredictionResults(history, coverSize).coverCounts;
 }
 
+export function buildFreshnessPredictionTopPicks(history: EnrichedHistory): (number[] | null)[] {
+  return buildFreshnessPredictionResults(history).topPicks;
+}
+
 function buildFreshnessPredictionResults(
   history: EnrichedHistory,
   coverSize = 6,
 ): {
   coverCounts: (number | null)[];
   scores: (number | null)[];
+  topPicks: (number[] | null)[];
 } {
   const lastSeen = new Map<number, number | null>();
   const drawnByBucket = emptyBucketMap();
   const exposureByBucket = emptyBucketMap();
   const coverCounts: (number | null)[] = [];
   const scores: (number | null)[] = [];
+  const topPicks: (number[] | null)[] = [];
 
   for (let number = 1; number <= 49; number += 1) {
     lastSeen.set(number, null);
@@ -299,6 +305,7 @@ function buildFreshnessPredictionResults(
     if (drawIndex === 0) {
       coverCounts.push(null);
       scores.push(null);
+      topPicks.push(null);
     } else {
       const bucketSummaries = freshnessBuckets.map((bucket) => {
         const drawnCount = drawnByBucket.get(bucket.id) ?? 0;
@@ -354,6 +361,7 @@ function buildFreshnessPredictionResults(
         ),
       );
       scores.push(drawScore);
+      topPicks.push(rankedNumbers.slice(0, 6));
     }
 
     const drawnValues = new Set(draw.numbers.map((number) => number.value));
@@ -375,5 +383,5 @@ function buildFreshnessPredictionResults(
     }
   });
 
-  return { coverCounts, scores };
+  return { coverCounts, scores, topPicks };
 }

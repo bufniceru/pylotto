@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import AllDrawsDialog from "./components/AllDrawsDialog.vue";
 import BayesianMarkovReportDialog from "./components/BayesianMarkovReportDialog.vue";
 import DrawsDialog from "./components/DrawsDialog.vue";
+import DrawScoresDialog from "./components/DrawScoresDialog.vue";
 import EntropyReportDialog from "./components/EntropyReportDialog.vue";
 import FreshnessReportDialog from "./components/FreshnessReportDialog.vue";
 import LastSeenDifferenceHighlightDialog from "./components/LastSeenDifferenceHighlightDialog.vue";
@@ -35,6 +36,7 @@ const isBayesianMarkovReportOpen = ref(false);
 const isScoreGraphsOpen = ref(false);
 const activeHighlightView = ref<HighlightView>("number");
 const isDrawsOpen = ref(false);
+const isDrawScoresOpen = ref(false);
 const isAllDrawsOpen = ref(false);
 const isNextPossibleDrawOpen = ref(false);
 const openWorkspaceViews = ref<WorkspaceView[]>([]);
@@ -65,6 +67,7 @@ const statisticsNextActualDraw = computed(() => {
 });
 const workspaceLabels: Record<WorkspaceView, string> = {
   draws: "Draws",
+  drawScores: "Draw Scores",
   allDraws: "All Draws",
   nextPossibleDrawPossible: "Possible Draw",
   nextPossibleDrawScoreGrid: "Predictive Score Grid",
@@ -87,6 +90,7 @@ const workspaceTabs = computed<WorkspaceTab[]>(() =>
 );
 const workspaceBreadcrumbs: Record<WorkspaceView, string[]> = {
   draws: ["File", "Draws"],
+  drawScores: ["File", "Draws", "Draw Scores"],
   allDraws: ["File", "Draws", "All Draws"],
   nextPossibleDrawPossible: ["File", "Planning", "Possible Draw"],
   nextPossibleDrawScoreGrid: ["File", "Planning", "Predictive Score Grid"],
@@ -151,6 +155,10 @@ function openLastSeenDifferenceHighlight(): void {
 }
 
 function openDraws(): void {
+  if (!openWorkspaceViews.value.includes("drawScores")) {
+    openWorkspaceViews.value = [...openWorkspaceViews.value, "drawScores"];
+  }
+
   openWorkspaceView("draws");
 }
 
@@ -208,6 +216,7 @@ function syncWorkspaceFlags(): void {
   }
 
   isDrawsOpen.value = activeWorkspaceView.value === "draws";
+  isDrawScoresOpen.value = activeWorkspaceView.value === "drawScores";
   isAllDrawsOpen.value = activeWorkspaceView.value === "allDraws";
   isNextPossibleDrawOpen.value =
     activeWorkspaceView.value === "nextPossibleDrawPossible" ||
@@ -584,6 +593,15 @@ onBeforeUnmount(() => {
     <DrawsDialog
       v-if="isDrawsOpen && !isLoading && !loadError"
       :active-workspace-view="activeWorkspaceView ?? 'draws'"
+      :draws="history.draws"
+      :workspace-tabs="workspaceTabs"
+      @close="closeActiveWorkspaceView"
+      @switch-workspace-view="switchWorkspaceView"
+    />
+
+    <DrawScoresDialog
+      v-if="isDrawScoresOpen && !isLoading && !loadError"
+      :active-workspace-view="activeWorkspaceView ?? 'drawScores'"
       :draws="history.draws"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"

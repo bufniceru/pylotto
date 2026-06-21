@@ -515,12 +515,10 @@ input {
 }
 
 .draws-history-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(700px, 820px);
-  align-items: stretch;
-  justify-content: stretch;
-  gap: 24px;
-  padding: 0 0 24px 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0 24px 24px;
 }
 
 .draws-table-panel {
@@ -956,6 +954,24 @@ input {
   text-align: left;
 }
 
+.draw-scores-dialog-shell {
+  width: min(1520px, calc(100vw - 32px));
+}
+
+.draw-scores-table {
+  min-width: 1180px;
+}
+
+.draw-scores-table th,
+.draw-scores-table td {
+  white-space: nowrap;
+}
+
+.draw-scores-table th:nth-child(3),
+.draw-scores-table td:nth-child(3) {
+  text-align: left;
+}
+
 .draws-grid-stack {
   display: grid;
   grid-template-columns: repeat(2, max-content);
@@ -1093,6 +1109,31 @@ input {
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.24),
     0 12px 22px rgba(38, 79, 159, 0.24);
+}
+
+.draws-detail-section > .draw-grid .draw-cell.selected {
+  position: relative;
+  border-color: #174b91;
+  border-width: 3px;
+  background: #ffffff;
+  color: #174b91;
+  box-shadow: 0 0 0 3px rgba(23, 75, 145, 0.12);
+}
+
+.draws-detail-section > .draw-grid .draw-cell.previous-prediction-hit {
+  background: var(--prediction-fill);
+}
+
+.draws-detail-section > .draw-grid .draw-cell.selected::after {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  width: 16px;
+  height: 10px;
+  border-right: 4px solid #174b91;
+  border-bottom: 4px solid #174b91;
+  content: "";
+  transform: rotate(38deg);
 }
 
 .score-grid-section {

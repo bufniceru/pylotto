@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import {
   bayesianMarkovRankingCount,
   buildBayesianMarkovPredictionCoverCounts,
-  buildBayesianMarkovPredictionScores,
+  buildBayesianMarkovPredictionTopPicks,
 } from "../lib/bayesianMarkovScore";
 import {
   buildFreshnessPredictionCoverCounts,
-  buildFreshnessPredictionScores,
+  buildFreshnessPredictionTopPicks,
 } from "../lib/freshness";
 import {
   buildProximityPredictionCoverCounts,
-  buildProximityPredictionScores,
+  buildProximityPredictionTopPicks,
 } from "../lib/proximity";
 import { buildStructuralEntropyReport } from "../lib/structuralEntropy";
 import WorkspaceTabs from "./WorkspaceTabs.vue";
@@ -29,7 +29,6 @@ const emit = defineEmits<{
 }>();
 
 const selectedDrawIndex = ref(Math.max(0, props.draws.length - 1));
-const selectedDrawRow = ref<HTMLTableRowElement | null>(null);
 
 const selectedDraw = computed(() => props.draws[selectedDrawIndex.value] ?? null);
 const selectedNumbers = computed(
@@ -41,23 +40,23 @@ const selectedDrawStructuralEntropy = computed(() =>
 const displayDrawNumber = computed(() =>
   selectedDraw.value === null ? 0 : selectedDrawIndex.value + 1,
 );
-const freshnessPredictionScores = computed(() =>
-  buildFreshnessPredictionScores({ draws: props.draws }),
-);
 const freshnessPredictionCoverCounts = computed(() =>
   buildFreshnessPredictionCoverCounts({ draws: props.draws }),
 );
-const proximityPredictionScores = computed(() =>
-  buildProximityPredictionScores({ draws: props.draws }),
+const freshnessPredictionTopPicks = computed(() =>
+  buildFreshnessPredictionTopPicks({ draws: props.draws }),
 );
 const proximityPredictionCoverCounts = computed(() =>
   buildProximityPredictionCoverCounts({ draws: props.draws }),
 );
-const bayesianMarkovPredictionScores = computed(() =>
-  buildBayesianMarkovPredictionScores({ draws: props.draws }),
+const proximityPredictionTopPicks = computed(() =>
+  buildProximityPredictionTopPicks({ draws: props.draws }),
 );
 const bayesianMarkovPredictionCoverCounts = computed(() =>
   buildBayesianMarkovPredictionCoverCounts({ draws: props.draws }),
+);
+const bayesianMarkovPredictionTopPicks = computed(() =>
+  buildBayesianMarkovPredictionTopPicks({ draws: props.draws }),
 );
 const coverMeanGroups = computed(() =>
   [6, 5, 4, 3, 2, 1].map((coverSize) => ({
@@ -84,37 +83,12 @@ const coverMeanGroups = computed(() =>
     ],
   })),
 );
-const tableDraws = computed(() =>
-  props.draws
-    .map((draw, index) => ({
-      draw,
-      index,
-      freshnessPredictionScore: freshnessPredictionScores.value[index] ?? null,
-      freshnessPredictionCoverCount: freshnessPredictionCoverCounts.value[index] ?? null,
-      proximityPredictionScore: proximityPredictionScores.value[index] ?? null,
-      proximityPredictionCoverCount: proximityPredictionCoverCounts.value[index] ?? null,
-      bayesianMarkovPredictionScore: bayesianMarkovPredictionScores.value[index] ?? null,
-      bayesianMarkovPredictionCoverCount: bayesianMarkovPredictionCoverCounts.value[index] ?? null,
-    }))
-    .sort((left, right) => right.draw.date.localeCompare(left.draw.date)),
-);
-
 watch(
   () => props.draws.length,
   (drawCount) => {
     selectedDrawIndex.value = Math.max(0, drawCount - 1);
-    void scrollSelectedDrawIntoView();
   },
 );
-
-watch(selectedDrawIndex, () => {
-  void scrollSelectedDrawIntoView();
-});
-
-async function scrollSelectedDrawIntoView(): Promise<void> {
-  await nextTick();
-  selectedDrawRow.value?.scrollIntoView({ block: "nearest" });
-}
 
 function setSelectedDrawIndex(index: number): void {
   if (!Number.isInteger(index)) {
@@ -140,14 +114,6 @@ function showLastDraw(): void {
   setSelectedDrawIndex(props.draws.length - 1);
 }
 
-function formatPredictionScore(score: number | null): string {
-  return score === null ? "n/a" : `${score.toFixed(1)}%`;
-}
-
-function formatPredictionCoverCount(coverCount: number | null): string {
-  return coverCount === null ? "n/a" : `${coverCount}/${bayesianMarkovRankingCount()}`;
-}
-
 function meanPredictionCoverCount(coverCounts: (number | null)[]): number | null {
   const values = coverCounts.filter((coverCount): coverCount is number => coverCount !== null);
 
@@ -160,6 +126,56 @@ function meanPredictionCoverCount(coverCounts: (number | null)[]): number | null
 
 function formatPredictionCoverMean(coverMean: number | null): string {
   return coverMean === null ? "n/a" : `${coverMean.toFixed(1)}/${bayesianMarkovRankingCount()}`;
+}
+
+function predictionMethodsForNumber(number: number): string[] {
+  const methods: string[] = [];
+  const drawIndex = selectedDrawIndex.value;
+
+  if (drawIndex <= 0) {
+    return methods;
+  }
+
+  if (freshnessPredictionTopPicks.value[drawIndex]?.includes(number)) {
+    methods.push("freshness");
+  }
+
+  if (proximityPredictionTopPicks.value[drawIndex]?.includes(number)) {
+    methods.push("proximity");
+  }
+
+  if (bayesianMarkovPredictionTopPicks.value[drawIndex]?.includes(number)) {
+    methods.push("bayesian");
+  }
+
+  return methods;
+}
+
+function predictionFillForNumber(number: number): string | undefined {
+  const colors: Record<string, string> = {
+    freshness: "#fed7aa",
+    proximity: "#bbf7d0",
+    bayesian: "#ddd6fe",
+  };
+  const methods = predictionMethodsForNumber(number);
+
+  if (methods.length === 0) {
+    return undefined;
+  }
+
+  if (methods.length === 1) {
+    return colors[methods[0]];
+  }
+
+  const step = 100 / methods.length;
+  const stops = methods
+    .flatMap((method, index) => [
+      `${colors[method]} ${index * step}%`,
+      `${colors[method]} ${(index + 1) * step}%`,
+    ])
+    .join(", ");
+
+  return `conic-gradient(${stops})`;
 }
 
 function formatBits(bits: number): string {
@@ -229,7 +245,11 @@ function formatPercent(value: number): string {
               v-for="number in 49"
               :key="number"
               class="draw-cell"
-              :class="{ selected: selectedNumbers.has(number) }"
+              :class="{
+                selected: selectedNumbers.has(number),
+                'previous-prediction-hit': predictionMethodsForNumber(number).length > 0,
+              }"
+              :style="{ '--prediction-fill': predictionFillForNumber(number) }"
               role="gridcell"
             >
               {{ number }}
@@ -342,61 +362,6 @@ function formatPercent(value: number): string {
           </section>
         </div>
 
-        <aside class="draws-table-panel" aria-label="All draws">
-          <table class="draws-table">
-            <thead>
-              <tr>
-                <th>No.</th>
-                <th>Date</th>
-                <th>Numbers</th>
-                <th title="How strongly the actual draw matched the freshness prediction generated from previous draws only.">
-                  Fr %
-                </th>
-                <th title="How many previous freshness-ranked picks you would need to play to include all six numbers in this draw.">
-                  Fr Cover
-                </th>
-                <th title="How strongly the actual draw matched the proximity prediction generated from previous draws only.">
-                  Pr %
-                </th>
-                <th title="How many previous proximity-ranked picks you would need to play to include all six numbers in this draw.">
-                  Pr Cover
-                </th>
-                <th title="How strongly the actual draw matched the Bayesian Markov prediction generated from previous draws only.">
-                  By %
-                </th>
-                <th title="How many previous Bayesian-ranked picks you would need to play to include all six numbers in this draw.">
-                  By Cover
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="{ draw, index, freshnessPredictionScore, freshnessPredictionCoverCount, proximityPredictionScore, proximityPredictionCoverCount, bayesianMarkovPredictionScore, bayesianMarkovPredictionCoverCount } in tableDraws"
-                :key="draw.date"
-                :ref="(element) => {
-                  if (index === selectedDrawIndex) {
-                    selectedDrawRow = element as HTMLTableRowElement;
-                  }
-                }"
-                :class="{ selected: selectedDrawIndex === index }"
-                tabindex="0"
-                @click="setSelectedDrawIndex(index)"
-                @keydown.enter.prevent="setSelectedDrawIndex(index)"
-                @keydown.space.prevent="setSelectedDrawIndex(index)"
-              >
-                <td>{{ index + 1 }}</td>
-                <td>{{ draw.date }}</td>
-                <td>{{ draw.numbers.map((number) => number.value).join(", ") }}</td>
-                <td>{{ formatPredictionScore(freshnessPredictionScore) }}</td>
-                <td>{{ formatPredictionCoverCount(freshnessPredictionCoverCount) }}</td>
-                <td>{{ formatPredictionScore(proximityPredictionScore) }}</td>
-                <td>{{ formatPredictionCoverCount(proximityPredictionCoverCount) }}</td>
-                <td>{{ formatPredictionScore(bayesianMarkovPredictionScore) }}</td>
-                <td>{{ formatPredictionCoverCount(bayesianMarkovPredictionCoverCount) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </aside>
       </div>
     </section>
   </div>
