@@ -114,6 +114,20 @@ function emptyBucketMap(): Map<string, number> {
   return new Map(freshnessBuckets.map((bucket) => [bucket.id, 0]));
 }
 
+function countNumbersNeededToCoverDraw(
+  drawnValues: number[],
+  rankedNumbers: number[],
+  coverSize: number,
+): number {
+  const rankByNumber = new Map(rankedNumbers.map((number, index) => [number, index + 1]));
+  const ranks = drawnValues
+    .map((number) => rankByNumber.get(number) ?? 49)
+    .sort((left, right) => left - right);
+  const coverIndex = Math.min(Math.max(coverSize, 1), ranks.length) - 1;
+
+  return ranks[coverIndex] ?? 49;
+}
+
 export function buildFreshnessModel(history: EnrichedHistory): FreshnessModel {
   const lastSeen = new Map<number, number | null>();
   const situationCounts = new Map<string, FreshnessSituation>();
@@ -251,4 +265,115 @@ export function buildFreshnessModel(history: EnrichedHistory): FreshnessModel {
     predictions,
     latestProfile,
   };
+}
+
+export function buildFreshnessPredictionScores(history: EnrichedHistory): (number | null)[] {
+  return buildFreshnessPredictionResults(history).scores;
+}
+
+export function buildFreshnessPredictionCoverCounts(
+  history: EnrichedHistory,
+  coverSize = 6,
+): (number | null)[] {
+  return buildFreshnessPredictionResults(history, coverSize).coverCounts;
+}
+
+function buildFreshnessPredictionResults(
+  history: EnrichedHistory,
+  coverSize = 6,
+): {
+  coverCounts: (number | null)[];
+  scores: (number | null)[];
+} {
+  const lastSeen = new Map<number, number | null>();
+  const drawnByBucket = emptyBucketMap();
+  const exposureByBucket = emptyBucketMap();
+  const coverCounts: (number | null)[] = [];
+  const scores: (number | null)[] = [];
+
+  for (let number = 1; number <= 49; number += 1) {
+    lastSeen.set(number, null);
+  }
+
+  history.draws.forEach((draw, drawIndex) => {
+    if (drawIndex === 0) {
+      coverCounts.push(null);
+      scores.push(null);
+    } else {
+      const bucketSummaries = freshnessBuckets.map((bucket) => {
+        const drawnCount = drawnByBucket.get(bucket.id) ?? 0;
+        const exposureCount = exposureByBucket.get(bucket.id) ?? 0;
+
+        return {
+          bucketId: bucket.id,
+          hitRate: exposureCount === 0 ? 0 : drawnCount / exposureCount,
+        };
+      });
+      const hitRateByBucket = new Map(
+        bucketSummaries.map((summary) => [summary.bucketId, summary.hitRate]),
+      );
+      const predictions = Array.from({ length: 49 }, (_value, index) => {
+        const number = index + 1;
+        const previousIndex = lastSeen.get(number) ?? null;
+        const currentGap = previousIndex === null ? null : drawIndex - previousIndex - 1;
+        const bucket = bucketForGap(currentGap);
+
+        return {
+          number,
+          currentGap,
+          hitRate: hitRateByBucket.get(bucket.id) ?? 0,
+          rank: 0,
+        };
+      })
+        .sort(
+          (left, right) =>
+            right.hitRate - left.hitRate ||
+            (right.currentGap ?? -1) - (left.currentGap ?? -1) ||
+            left.number - right.number,
+        )
+        .map((prediction, index) => ({
+          ...prediction,
+          rank: index + 1,
+        }));
+      const rankByNumber = new Map(
+        predictions.map((prediction) => [prediction.number, prediction.rank]),
+      );
+      const rankedNumbers = predictions.map((prediction) => prediction.number);
+      const drawScore =
+        draw.numbers.reduce((total, number) => {
+          const rank = rankByNumber.get(number.value) ?? 49;
+
+          return total + ((49 - rank) / 48) * 100;
+        }, 0) / draw.numbers.length;
+
+      coverCounts.push(
+        countNumbersNeededToCoverDraw(
+          draw.numbers.map((number) => number.value),
+          rankedNumbers,
+          coverSize,
+        ),
+      );
+      scores.push(drawScore);
+    }
+
+    const drawnValues = new Set(draw.numbers.map((number) => number.value));
+
+    for (let number = 1; number <= 49; number += 1) {
+      const previousIndex = lastSeen.get(number) ?? null;
+      const gap = previousIndex === null ? null : drawIndex - previousIndex - 1;
+      const bucket = bucketForGap(gap);
+
+      exposureByBucket.set(bucket.id, (exposureByBucket.get(bucket.id) ?? 0) + 1);
+
+      if (drawnValues.has(number)) {
+        drawnByBucket.set(bucket.id, (drawnByBucket.get(bucket.id) ?? 0) + 1);
+      }
+    }
+
+    for (const number of draw.numbers) {
+      lastSeen.set(number.value, drawIndex);
+    }
+  });
+
+  return { coverCounts, scores };
 }

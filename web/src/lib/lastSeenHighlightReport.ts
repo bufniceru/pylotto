@@ -12,7 +12,11 @@ const chartRight = 30;
 const rowHeight = 30;
 const pointRadius = 13.5;
 const undrawnStripWidth = (pointRadius * 2) / 3;
+const gapHighlightRibbonWidth = 9;
+const topGapRibbonMatchWidth = 18;
 const plotWidth = svgWidth - chartLeft - chartRight;
+const topGapRibbonY = chartTop - 48;
+const topGapRibbonHeight = 30;
 
 function escapeXml(value: string): string {
   return value
@@ -131,9 +135,15 @@ function chartChrome({
 .x-tick, .top-x-tick { text-anchor: middle; }
 .top-x-tick { font-size: 11px; font-weight: 800; fill: #ffffff; }
 .top-number-strip { fill: #123b72; }
+.top-gap-ribbon { fill: #0b2f5e; }
+.top-gap-ribbon-match { fill: #2fa84f; }
+.top-gap-ribbon-stripe { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1; }
+.top-gap-ribbon-stripe.major { stroke: #ffd08a; stroke-width: 2; }
 .x-tick.major, .y-tick { font-weight: 700; fill: #42506a; }
 .vertical-guide { stroke: rgba(78, 92, 118, 0.28); stroke-dasharray: 4 6; stroke-width: 1; }
 .vertical-guide.major { stroke: rgba(78, 92, 118, 0.58); stroke-width: 2; }
+.gap-unit-guide { stroke: rgba(242, 166, 79, 0.32); stroke-dasharray: none; }
+.gap-unit-guide.major { stroke: rgba(242, 166, 79, 0.68); }
 .current-reference-ribbon { fill: rgba(128, 128, 128, 0.1); }
 .horizontal-guide { stroke: rgba(162, 170, 187, 0.72); stroke-width: 1; }
 .horizontal-guide.major { stroke: rgba(78, 92, 118, 0.58); stroke-width: 2.4; }
@@ -141,6 +151,7 @@ function chartChrome({
 .point-highlighted { fill: #d93a3a; }
 .point-reference-range { fill: rgba(128, 128, 128, 0.55); }
 .undrawn-strip { fill: rgba(255, 190, 106, 0.62); }
+.gap-highlight-ribbon { fill: rgba(255, 190, 106, 0.72); stroke: rgba(222, 124, 36, 0.55); stroke-width: 1; }
 .point-label { font: 700 15px "Segoe UI", "Helvetica Neue", sans-serif; fill: #ffe25d; text-anchor: middle; }
 </style>
 <rect class="highlight-chart-bg" width="100%" height="100%" />
@@ -249,22 +260,42 @@ export function buildLastSeenGapHighlightReportSvg(model: LastSeenGapHighlightMo
     { length: Math.floor(model.maxGap / gapStep) + 1 },
     (_value, index) => index * gapStep,
   );
+  const gapUnits = Array.from({ length: model.maxGap + 1 }, (_value, gap) => gap);
+  const referenceDrawGaps = new Set(model.referenceGaps);
 
-  const verticalGuides = gapTicks
+  const verticalGuides = gapUnits
     .map((gap) => {
-      const className = gap % 5 === 0 ? "vertical-guide major" : "vertical-guide";
+      const className =
+        gap % 5 === 0 ? "vertical-guide gap-unit-guide major" : "vertical-guide gap-unit-guide";
       return `<line x1="${xForGap(model, gap)}" x2="${xForGap(model, gap)}" y1="${
         chartTop - 10
       }" y2="${chartTop + plotHeight + 10}" class="${className}" />`;
     })
     .join("");
 
-  const topTicks = gapTicks
-    .map((gap) =>
-      gap % 5 === 0
-        ? `<text x="${xForGap(model, gap)}" y="${chartTop - 18}" class="tick-label top-x-tick">${gap}</text>`
-        : "",
-    )
+  const topRibbonStripes = gapUnits
+    .map((gap) => {
+      const className =
+        gap % 5 === 0 ? "top-gap-ribbon-stripe major" : "top-gap-ribbon-stripe";
+      return `<line x1="${xForGap(model, gap)}" x2="${xForGap(model, gap)}" y1="${
+        topGapRibbonY + 3
+      }" y2="${topGapRibbonY + topGapRibbonHeight - 3}" class="${className}" />`;
+    })
+    .join("");
+
+  const topTicks = gapUnits
+    .map((gap) => {
+      const matchBackground = referenceDrawGaps.has(gap)
+        ? `<rect x="${
+            xForGap(model, gap) - topGapRibbonMatchWidth / 2
+          }" y="${topGapRibbonY + 3}" width="${topGapRibbonMatchWidth}" height="${
+            topGapRibbonHeight - 6
+          }" class="top-gap-ribbon-match" rx="6" />`
+        : "";
+      return `${matchBackground}<text x="${xForGap(model, gap)}" y="${
+        topGapRibbonY + 21
+      }" class="tick-label top-x-tick">${gap}</text>`;
+    })
     .join("");
 
   const xTickLabels = gapTicks
@@ -282,6 +313,23 @@ export function buildLastSeenGapHighlightReportSvg(model: LastSeenGapHighlightMo
       : `<rect x="${xForGap(model, 0) - 11}" y="${
           yForDraw(model, model.referenceDrawIndex) - 14
         }" width="${plotWidth + 22}" height="28" class="current-reference-ribbon" />`;
+
+  const highlightRibbons = model.points
+    .filter((point) => point.highlighted && referenceDrawGaps.has(point.gap))
+    .map((point) => {
+      const topY = topGapRibbonY + topGapRibbonHeight;
+      const bottomY = yForDraw(model, point.drawIndex) - pointRadius;
+      const height = Math.max(0, bottomY - topY);
+
+      if (height <= 0) {
+        return "";
+      }
+
+      return `<rect x="${
+        xForGap(model, point.gap) - gapHighlightRibbonWidth / 2
+      }" y="${topY}" width="${gapHighlightRibbonWidth}" height="${height}" rx="4.5" class="gap-highlight-ribbon" />`;
+    })
+    .join("");
 
   const points = model.points
     .map((point) => {
@@ -305,10 +353,12 @@ export function buildLastSeenGapHighlightReportSvg(model: LastSeenGapHighlightMo
     horizontalEnd: xForGap(model, model.maxGap),
     horizontalStart: xForGap(model, 0),
     model,
-    points,
+    points: `${highlightRibbons}${points}`,
     referenceRibbon,
     title,
-    topTicks,
+    topTicks: `<rect x="${xForGap(model, 0) - 15}" y="${topGapRibbonY}" width="${
+      plotWidth + 30
+    }" height="${topGapRibbonHeight}" class="top-gap-ribbon" rx="8" />${topRibbonStripes}${topTicks}`,
     verticalGuides,
     xTickLabels,
   });

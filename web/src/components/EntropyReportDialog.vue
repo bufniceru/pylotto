@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { buildEntropyModel } from "../lib/structuralEntropy";
 import StatisticsReferenceNavigation from "./StatisticsReferenceNavigation.vue";
 import WorkspaceTabs from "./WorkspaceTabs.vue";
-import type { EnrichedDraw, ProximityModel, WorkspaceTab, WorkspaceView } from "../types";
+import type { EnrichedHistory, WorkspaceTab, WorkspaceView } from "../types";
 
 const props = defineProps<{
   activeWorkspaceView: WorkspaceView;
+  history: EnrichedHistory;
   maxReferenceDrawOffset: number;
-  model: ProximityModel;
-  nextActualDraw: EnrichedDraw | null;
   referenceDrawOffset: number;
   workspaceTabs: WorkspaceTab[];
 }>();
@@ -22,11 +22,12 @@ const emit = defineEmits<{
   switchWorkspaceView: [value: WorkspaceView];
 }>();
 
-const maxSituationCount = Math.max(...props.model.situations.map((situation) => situation.count), 1);
-const maxBucketCount = Math.max(...props.model.bucketSummaries.map((summary) => summary.count), 1);
-const latestNumbers = props.model.latestProfile?.numbers ?? [];
-const hitNumbers = computed(
-  () => new Set(props.nextActualDraw?.numbers.map((number) => number.value) ?? []),
+const model = computed(() => buildEntropyModel(props.history));
+const maxSituationCount = computed(() =>
+  Math.max(...model.value.situations.map((situation) => situation.count), 1),
+);
+const maxBucketCount = computed(() =>
+  Math.max(...model.value.bucketSummaries.map((summary) => summary.count), 1),
 );
 
 function percent(value: number): string {
@@ -34,21 +35,21 @@ function percent(value: number): string {
 }
 
 function score(value: number): string {
-  return value.toFixed(4);
+  return `${value.toFixed(1)}%`;
+}
+
+function bits(value: number): string {
+  return `${value.toFixed(2)}`;
 }
 
 function bucketColor(bucketId: string): string {
-  return props.model.buckets.find((bucket) => bucket.id === bucketId)?.color ?? "#7b8798";
-}
-
-function xForNumber(number: number): number {
-  return 34 + ((number - 1) / 48) * 672;
+  return model.value.buckets.find((bucket) => bucket.id === bucketId)?.color ?? "#7b8798";
 }
 </script>
 
 <template>
   <div class="dialog-backdrop draws-workspace-backdrop">
-    <section class="dialog-shell proximity-dialog-shell">
+    <section class="dialog-shell entropy-dialog-shell">
       <WorkspaceTabs
         :active-workspace-view="activeWorkspaceView"
         :workspace-tabs="workspaceTabs"
@@ -57,7 +58,7 @@ function xForNumber(number: number): number {
 
       <StatisticsReferenceNavigation
         :max-reference-draw-offset="maxReferenceDrawOffset"
-        :reference-draw-date="model.latestProfile?.date ?? null"
+        :reference-draw-date="model.latestProfile.date"
         :reference-draw-offset="referenceDrawOffset"
         @first-reference-draw="emit('firstReferenceDraw')"
         @latest-reference-draw="emit('latestReferenceDraw')"
@@ -72,12 +73,16 @@ function xForNumber(number: number): number {
           Situations
           <strong>{{ model.situationCount }}</strong>
         </p>
+        <p class="reference-pill">
+          Latest
+          <strong>{{ score(model.latestProfile.report?.structuralPercent ?? 0) }}</strong>
+        </p>
       </StatisticsReferenceNavigation>
 
       <div class="dialog-body freshness-dialog-body">
         <section class="freshness-band">
-          <h3>Proximity Characterization</h3>
-          <div class="freshness-buckets proximity-buckets">
+          <h3>Entropy Report</h3>
+          <div class="freshness-buckets entropy-buckets">
             <article
               v-for="bucket in model.buckets"
               :key="bucket.id"
@@ -93,35 +98,36 @@ function xForNumber(number: number): number {
 
         <section class="freshness-grid-layout">
           <div class="freshness-panel">
-            <h3>Historical Proximity Frequency</h3>
+            <h3>Historical Entropy Frequency</h3>
             <svg class="freshness-chart" viewBox="0 0 760 320" role="img">
               <line x1="44" x2="732" y1="260" y2="260" class="freshness-axis" />
               <g
                 v-for="(summary, index) in model.bucketSummaries"
                 :key="summary.bucketId"
-                :transform="`translate(${76 + index * 104}, 0)`"
+                :transform="`translate(${72 + index * 118}, 0)`"
               >
                 <rect
                   :height="Math.max(2, (summary.count / maxBucketCount) * 190)"
-                  width="48"
+                  width="52"
                   x="0"
                   :y="260 - Math.max(2, (summary.count / maxBucketCount) * 190)"
                   class="freshness-bar"
                   :style="{ fill: bucketColor(summary.bucketId) }"
                   rx="6"
                 />
-                <text x="24" y="284" class="freshness-chart-label">{{ summary.label }}</text>
-                <text x="24" :y="248 - Math.max(2, (summary.count / maxBucketCount) * 190)" class="freshness-chart-value">
+                <text x="26" y="284" class="freshness-chart-label">{{ summary.label }}</text>
+                <text x="26" :y="248 - Math.max(2, (summary.count / maxBucketCount) * 190)" class="freshness-chart-value">
                   {{ summary.count }}
                 </text>
               </g>
             </svg>
-            <div class="freshness-summary-table proximity-summary-table">
+            <div class="freshness-summary-table entropy-summary-table">
               <div class="freshness-row freshness-row-head">
                 <span>Bucket</span>
                 <span>Count</span>
                 <span>Share</span>
-                <span>Avg near</span>
+                <span>Avg bits</span>
+                <span>Avg %</span>
               </div>
               <div
                 v-for="summary in model.bucketSummaries"
@@ -131,48 +137,41 @@ function xForNumber(number: number): number {
                 <span>{{ summary.label }}</span>
                 <span>{{ summary.count }}</span>
                 <span>{{ percent(summary.share) }}</span>
-                <span>{{ summary.averageNearestDistance.toFixed(1) }}</span>
+                <span>{{ bits(summary.averageBits) }}</span>
+                <span>{{ score(summary.averagePercent) }}</span>
               </div>
             </div>
           </div>
 
           <div class="freshness-panel">
-            <h3>Latest Draw Spacing</h3>
-            <p class="freshness-signature">{{ model.latestProfile?.signature ?? "n/a" }}</p>
-            <svg class="proximity-strip-chart" viewBox="0 0 740 150" role="img">
-              <line x1="34" x2="706" y1="74" y2="74" class="proximity-axis" />
-              <g v-for="tick in [1, 10, 20, 30, 40, 49]" :key="`tick-${tick}`">
-                <line :x1="xForNumber(tick)" :x2="xForNumber(tick)" y1="64" y2="84" class="proximity-tick" />
-                <text :x="xForNumber(tick)" y="108" class="freshness-chart-label">{{ tick }}</text>
-              </g>
-              <g v-for="(number, index) in latestNumbers" :key="number.number">
-                <line
-                  v-if="index < latestNumbers.length - 1"
-                  :x1="xForNumber(number.number)"
-                  :x2="xForNumber(latestNumbers[index + 1].number)"
-                  y1="74"
-                  y2="74"
-                  class="proximity-gap-line"
-                />
-                <circle
-                  :cx="xForNumber(number.number)"
-                  cy="74"
-                  r="16"
-                  :style="{ fill: bucketColor(number.bucketId) }"
-                />
-                <text :x="xForNumber(number.number)" y="79" class="proximity-number-label">{{ number.number }}</text>
-              </g>
-            </svg>
+            <h3>Latest Draw Entropy Profile</h3>
+            <p class="freshness-signature">{{ model.latestProfile.signature }}</p>
             <div class="freshness-number-list">
               <div
-                v-for="number in latestNumbers"
+                v-for="number in model.latestProfile.numbers"
                 :key="number.number"
                 class="freshness-number-card"
-                :style="{ '--bucket-color': bucketColor(number.bucketId) }"
+                :style="{ '--bucket-color': bucketColor(number.label === 'n/a' ? 'structured' : model.predictions.find((prediction) => prediction.number === number.number)?.bucketId ?? 'structured') }"
               >
                 <strong>{{ number.number }}</strong>
-                <span>{{ number.label }}</span>
-                <small>nearest {{ number.nearestDistance }}</small>
+                <span>{{ score(number.score) }}</span>
+                <small>avg {{ score(number.entropyPercent) }} | gap {{ number.currentGap }}</small>
+              </div>
+            </div>
+            <div class="freshness-summary-table compact entropy-lens-table">
+              <div class="freshness-row freshness-row-head">
+                <span>Lens</span>
+                <span>Bits</span>
+                <span>Selected</span>
+              </div>
+              <div
+                v-for="lens in model.latestProfile.report?.lenses ?? []"
+                :key="lens.id"
+                class="freshness-row"
+              >
+                <span>{{ lens.label }}</span>
+                <span>{{ bits(lens.bits) }}</span>
+                <span>{{ lens.selected ? "yes" : "no" }}</span>
               </div>
             </div>
           </div>
@@ -199,27 +198,26 @@ function xForNumber(number: number): number {
           </div>
 
           <div class="freshness-panel">
-            <h3>Next Draw Proximity Prediction</h3>
+            <h3>Next Draw Entropy Prediction</h3>
             <div class="freshness-prediction-grid">
               <div
                 v-for="prediction in model.predictions"
                 :key="prediction.number"
                 class="freshness-prediction-cell"
-                :class="{ 'prediction-hit': hitNumbers.has(prediction.number) }"
                 :style="{ '--bucket-color': bucketColor(prediction.bucketId) }"
-                :title="`${prediction.label} | appearances ${prediction.appearances} | score ${score(prediction.score)}`"
+                :title="`${prediction.label} | score ${score(prediction.score)} | avg entropy ${score(prediction.entropyPercent)} | high entropy ${percent(prediction.highEntropyShare)} | hits ${prediction.appearances} | gap ${prediction.currentGap}`"
               >
                 <strong>{{ prediction.number }}</strong>
-                <span>#{{ prediction.rank }}</span>
+                <span>{{ score(prediction.score) }}</span>
               </div>
             </div>
             <div class="freshness-summary-table compact">
               <div class="freshness-row freshness-row-head">
                 <span>Rank</span>
                 <span>No.</span>
-                <span>Role</span>
-                <span>Hits</span>
                 <span>Score</span>
+                <span>Avg %</span>
+                <span>Gap</span>
               </div>
               <div
                 v-for="prediction in model.predictions.slice(0, 12)"
@@ -227,17 +225,10 @@ function xForNumber(number: number): number {
                 class="freshness-row"
               >
                 <span>{{ prediction.rank }}</span>
-                <span>
-                  <b
-                    class="prediction-number-marker"
-                    :class="{ 'prediction-hit': hitNumbers.has(prediction.number) }"
-                  >
-                    {{ prediction.number }}
-                  </b>
-                </span>
-                <span>{{ prediction.label }}</span>
-                <span>{{ prediction.appearances }}</span>
+                <span>{{ prediction.number }}</span>
                 <span>{{ score(prediction.score) }}</span>
+                <span>{{ score(prediction.entropyPercent) }}</span>
+                <span>{{ prediction.currentGap }}</span>
               </div>
             </div>
           </div>

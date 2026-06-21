@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
 import StatisticsReferenceNavigation from "./StatisticsReferenceNavigation.vue";
+import WorkspaceTabs from "./WorkspaceTabs.vue";
 import { buildLastSeenDifferenceHighlightReportSvg } from "../lib/lastSeenHighlightReport";
 import type {
   HighlightView,
@@ -149,55 +150,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="dialog-backdrop" @click.self="emit('close')">
-    <section class="dialog-shell dialog-shell-wide">
-      <header class="dialog-header">
-        <div>
-          <p class="eyebrow">Statistics / Views</p>
-          <h2>Last Seen Difference Highlight</h2>
-        </div>
-        <button class="ghost-button" type="button" @click="emit('close')">Close</button>
-      </header>
-
-      <nav class="mdi-tabs" aria-label="Open workspace views">
-        <button
-          v-for="tab in workspaceTabs"
-          :key="tab.id"
-          class="mdi-tab"
-          :class="{ active: activeWorkspaceView === tab.id }"
-          type="button"
-          @click="emit('switchWorkspaceView', tab.id)"
-        >
-          {{ tab.label }}
-        </button>
-      </nav>
-
-      <nav class="view-tabs" aria-label="Last seen highlight views">
-        <button
-          class="view-tab"
-          :class="{ active: activeView === 'number' }"
-          type="button"
-          @click="emit('switchView', 'number')"
-        >
-          Numbers
-        </button>
-        <button
-          class="view-tab"
-          :class="{ active: activeView === 'gap' }"
-          type="button"
-          @click="emit('switchView', 'gap')"
-        >
-          Gaps
-        </button>
-        <button
-          class="view-tab"
-          :class="{ active: activeView === 'difference' }"
-          type="button"
-          @click="emit('switchView', 'difference')"
-        >
-          Differences
-        </button>
-      </nav>
+  <div class="dialog-backdrop draws-workspace-backdrop">
+    <section class="dialog-shell highlight-dialog-shell">
+      <WorkspaceTabs
+        :active-workspace-view="activeWorkspaceView"
+        :workspace-tabs="workspaceTabs"
+        @switch-workspace-view="emit('switchWorkspaceView', $event)"
+      />
 
       <StatisticsReferenceNavigation
         :max-reference-draw-offset="model.maxReferenceOffset"
@@ -207,9 +166,7 @@ onBeforeUnmount(() => {
         @latest-reference-draw="emit('latestDraw')"
         @next-reference-draw="emit('nextDraw')"
         @previous-reference-draw="emit('previousDraw')"
-      />
-
-      <div class="dialog-toolbar">
+      >
         <label class="field-group">
           <span>Draw count</span>
           <input
@@ -231,26 +188,17 @@ onBeforeUnmount(() => {
           {{ exportState === "saving" ? "Saving..." : "Save Last 50 SVG" }}
         </button>
 
-        <p class="reference-pill">
-          Reference draw:
-          <strong>{{ model.referenceDrawDate ?? "none" }}</strong>
-        </p>
-
         <p v-if="exportState === 'saved'" class="report-status" :title="exportedReportPath ?? ''">
           Saved SVG
         </p>
         <p v-else-if="exportState === 'error'" class="report-status error">
           SVG export failed
         </p>
-      </div>
+      </StatisticsReferenceNavigation>
 
       <div class="dialog-body">
         <div class="chart-scroll">
           <svg :height="chartHeight" :width="svgWidth" class="highlight-chart" role="img">
-            <text class="chart-title" :x="chartLeft" y="34">
-              Last Draw (Index) Where Each Sorted Draw Difference Appeared up to
-              {{ model.referenceDrawDate ?? "n/a" }}
-            </text>
             <text class="axis-label" :x="svgWidth / 2" :y="chartHeight - 10">
               Difference
             </text>

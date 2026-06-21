@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
 import StatisticsReferenceNavigation from "./StatisticsReferenceNavigation.vue";
+import WorkspaceTabs from "./WorkspaceTabs.vue";
 import { buildLastSeenGapHighlightReportSvg } from "../lib/lastSeenHighlightReport";
 import type { HighlightView, LastSeenGapHighlightModel, WorkspaceTab, WorkspaceView } from "../types";
 
@@ -37,10 +38,16 @@ const chartHeight = computed(() =>
 );
 const plotHeight = computed(() => Math.max(1, props.model.drawCount - 1) * rowHeight);
 const plotWidth = svgWidth - chartLeft - chartRight;
+const topGapRibbonY = chartTop - 48;
+const topGapRibbonHeight = 30;
+const pointRadius = 13.5;
+const gapHighlightRibbonWidth = 9;
+const topGapRibbonMatchWidth = 18;
 const rowDrawIndices = computed(() =>
   Array.from({ length: props.model.drawCount }, (_value, index) => props.model.drawCount - 1 - index),
 );
 const longPressGap = ref<number | null>(null);
+const gapNumbersPopup = ref<{ gap: number; numbers: number[] } | null>(null);
 const exportState = ref<"idle" | "saving" | "saved" | "error">("idle");
 const exportedReportPath = ref<string | null>(null);
 let longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -66,6 +73,25 @@ function cancelLongPress(): void {
 
 function closeLongPressPopup(): void {
   longPressGap.value = null;
+}
+
+function openGapNumbersPopup(event: MouseEvent, gap: number): void {
+  if (!event.ctrlKey) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  clearLongPressTimer();
+
+  gapNumbersPopup.value = {
+    gap,
+    numbers: props.model.referenceGapNumbers[gap] ?? [],
+  };
+}
+
+function closeGapNumbersPopup(): void {
+  gapNumbersPopup.value = null;
 }
 
 function last50ReportFileName(): string {
@@ -137,6 +163,10 @@ const gapTicks = computed(() => {
 
   return ticks;
 });
+const gapUnits = computed(() =>
+  Array.from({ length: props.model.maxGap + 1 }, (_value, gap) => gap),
+);
+const referenceDrawGaps = computed(() => new Set(props.model.referenceGaps));
 
 onBeforeUnmount(() => {
   clearLongPressTimer();
@@ -144,55 +174,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="dialog-backdrop" @click.self="emit('close')">
-    <section class="dialog-shell dialog-shell-wide">
-      <header class="dialog-header">
-        <div>
-          <p class="eyebrow">Statistics / Views</p>
-          <h2>Last Seen Gap Highlight</h2>
-        </div>
-        <button class="ghost-button" type="button" @click="emit('close')">Close</button>
-      </header>
-
-      <nav class="mdi-tabs" aria-label="Open workspace views">
-        <button
-          v-for="tab in workspaceTabs"
-          :key="tab.id"
-          class="mdi-tab"
-          :class="{ active: activeWorkspaceView === tab.id }"
-          type="button"
-          @click="emit('switchWorkspaceView', tab.id)"
-        >
-          {{ tab.label }}
-        </button>
-      </nav>
-
-      <nav class="view-tabs" aria-label="Last seen highlight views">
-        <button
-          class="view-tab"
-          :class="{ active: activeView === 'number' }"
-          type="button"
-          @click="emit('switchView', 'number')"
-        >
-          Numbers
-        </button>
-        <button
-          class="view-tab"
-          :class="{ active: activeView === 'gap' }"
-          type="button"
-          @click="emit('switchView', 'gap')"
-        >
-          Gaps
-        </button>
-        <button
-          class="view-tab"
-          :class="{ active: activeView === 'difference' }"
-          type="button"
-          @click="emit('switchView', 'difference')"
-        >
-          Differences
-        </button>
-      </nav>
+  <div class="dialog-backdrop draws-workspace-backdrop">
+    <section class="dialog-shell highlight-dialog-shell">
+      <WorkspaceTabs
+        :active-workspace-view="activeWorkspaceView"
+        :workspace-tabs="workspaceTabs"
+        @switch-workspace-view="emit('switchWorkspaceView', $event)"
+      />
 
       <StatisticsReferenceNavigation
         :max-reference-draw-offset="model.maxReferenceOffset"
@@ -202,9 +190,7 @@ onBeforeUnmount(() => {
         @latest-reference-draw="emit('latestDraw')"
         @next-reference-draw="emit('nextDraw')"
         @previous-reference-draw="emit('previousDraw')"
-      />
-
-      <div class="dialog-toolbar">
+      >
         <label class="field-group">
           <span>Draw count</span>
           <input
@@ -226,39 +212,50 @@ onBeforeUnmount(() => {
           {{ exportState === "saving" ? "Saving..." : "Save Last 50 SVG" }}
         </button>
 
-        <p class="reference-pill">
-          Reference draw:
-          <strong>{{ model.referenceDrawDate ?? "none" }}</strong>
-        </p>
-
         <p v-if="exportState === 'saved'" class="report-status" :title="exportedReportPath ?? ''">
           Saved SVG
         </p>
         <p v-else-if="exportState === 'error'" class="report-status error">
           SVG export failed
         </p>
-      </div>
+      </StatisticsReferenceNavigation>
 
       <div class="dialog-body">
         <div class="chart-scroll">
           <svg :height="chartHeight" :width="svgWidth" class="highlight-chart" role="img">
-            <text class="chart-title" :x="chartLeft" y="34">
-              Last Draw (Index) Where Each Gap Appeared up to
-              {{ model.referenceDrawDate ?? "n/a" }}
-            </text>
             <text class="axis-label" :x="svgWidth / 2" :y="chartHeight - 10">Gap</text>
             <text class="axis-label" :x="18" :y="chartHeight / 2" transform="rotate(-90, 18, 240)">
               Draw Index
             </text>
 
+            <rect
+              :x="xForGap(0) - 15"
+              :y="topGapRibbonY"
+              :width="plotWidth + 30"
+              :height="topGapRibbonHeight"
+              class="top-gap-ribbon"
+              rx="8"
+            />
+
             <line
-              v-for="gap in gapTicks"
+              v-for="gap in gapUnits"
+              :key="`rv-${gap}`"
+              :x1="xForGap(gap)"
+              :x2="xForGap(gap)"
+              :y1="topGapRibbonY + 3"
+              :y2="topGapRibbonY + topGapRibbonHeight - 3"
+              class="top-gap-ribbon-stripe"
+              :class="{ major: gap % 5 === 0 }"
+            />
+
+            <line
+              v-for="gap in gapUnits"
               :key="`v-${gap}`"
               :x1="xForGap(gap)"
               :x2="xForGap(gap)"
               :y1="chartTop - 10"
               :y2="chartTop + plotHeight + 10"
-              class="vertical-guide"
+              class="vertical-guide gap-unit-guide"
               :class="{ major: gap % 5 === 0 }"
             />
 
@@ -271,14 +268,26 @@ onBeforeUnmount(() => {
               class="current-reference-ribbon"
             />
 
-            <g v-for="gap in gapTicks" :key="`xt-top-${gap}`">
+            <g v-for="gap in gapUnits" :key="`xt-top-${gap}`">
+              <rect
+                v-if="referenceDrawGaps.has(gap)"
+                :x="xForGap(gap) - topGapRibbonMatchWidth / 2"
+                :y="topGapRibbonY + 3"
+                :width="topGapRibbonMatchWidth"
+                :height="topGapRibbonHeight - 6"
+                class="top-gap-ribbon-match"
+                rx="6"
+                @click="openGapNumbersPopup($event, gap)"
+              />
               <text
-                v-if="gap % 5 === 0"
                 :x="xForGap(gap)"
-                :y="chartTop - 18"
-                class="tick-label top-x-tick"
+                :y="topGapRibbonY + 21"
+                class="tick-label top-x-tick gap-ribbon-label"
+                :class="{ matched: referenceDrawGaps.has(gap) }"
+                @click="openGapNumbersPopup($event, gap)"
               >
                 {{ gap }}
+                <title>Ctrl+Click to show numbers with gap {{ gap }}</title>
               </text>
             </g>
 
@@ -310,6 +319,24 @@ onBeforeUnmount(() => {
               </text>
             </g>
 
+            <rect
+              v-for="(point, index) in model.points.filter(
+                (candidate) => candidate.highlighted && referenceDrawGaps.has(candidate.gap),
+              )"
+              :key="`highlight-ribbon-${point.drawIndex}-${point.gap}-${index}`"
+              :x="xForGap(point.gap) - gapHighlightRibbonWidth / 2"
+              :y="topGapRibbonY + topGapRibbonHeight"
+              :width="gapHighlightRibbonWidth"
+              :height="
+                Math.max(
+                  0,
+                  yForDraw(point.drawIndex) - pointRadius - (topGapRibbonY + topGapRibbonHeight),
+                )
+              "
+              class="gap-highlight-ribbon"
+              rx="4.5"
+            />
+
             <g v-for="(point, index) in model.points" :key="`${point.drawIndex}-${point.gap}-${index}`">
               <circle
                 :cx="xForGap(point.gap)"
@@ -321,7 +348,7 @@ onBeforeUnmount(() => {
                       ? 'point-highlighted'
                       : 'point-default',
                 ]"
-                r="13.5"
+                :r="pointRadius"
                 @pointercancel="cancelLongPress"
                 @pointerdown="startLongPress(point.gap)"
                 @pointerleave="cancelLongPress"
@@ -349,6 +376,27 @@ onBeforeUnmount(() => {
               {{ longPressGap }}
             </div>
             <button class="ghost-button" type="button" @click="closeLongPressPopup">Close</button>
+          </div>
+        </div>
+
+        <div
+          v-if="gapNumbersPopup !== null"
+          class="number-popup-backdrop"
+          @click="closeGapNumbersPopup"
+        >
+          <div class="number-popup gap-numbers-popup" @click.stop>
+            <p class="number-popup-label">Numbers With Gap {{ gapNumbersPopup.gap }}</p>
+            <div v-if="gapNumbersPopup.numbers.length > 0" class="gap-number-list">
+              <span
+                v-for="number in gapNumbersPopup.numbers"
+                :key="number"
+                class="gap-number-ball"
+              >
+                {{ number }}
+              </span>
+            </div>
+            <p v-else class="number-popup-detail">No numbers have this gap.</p>
+            <button class="ghost-button" type="button" @click="closeGapNumbersPopup">Close</button>
           </div>
         </div>
       </div>

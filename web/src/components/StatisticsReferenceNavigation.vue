@@ -55,5 +55,6 @@ const emit = defineEmits<{
     >
       ⏭
     </button>
+    <slot />
   </div>
 </template>

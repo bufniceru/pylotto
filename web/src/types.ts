@@ -28,11 +28,19 @@ export interface EnrichedHistory {
 export type HighlightView = "number" | "gap" | "difference";
 export type WorkspaceView =
   | "draws"
-  | "nextPossibleDraw"
-  | "highlights"
+  | "allDraws"
+  | "nextPossibleDrawPossible"
+  | "nextPossibleDrawScoreGrid"
+  | "nextPossibleDrawReal"
+  | "lastSeenHighlight"
+  | "lastSeenGapHighlight"
+  | "lastSeenDifferenceHighlight"
+  | "entropy"
   | "freshness"
   | "proximity"
-  | "markovScore";
+  | "markovScore"
+  | "bayesianMarkov"
+  | "scoreGraphs";
 
 export interface WorkspaceTab {
   id: WorkspaceView;
@@ -94,6 +102,8 @@ export interface LastSeenGapHighlightModel {
   points: LastSeenGapHighlightPoint[];
   drawCount: number;
   maxGap: number;
+  referenceGaps: number[];
+  referenceGapNumbers: Record<number, number[]>;
   maxReferenceOffset: number;
   referenceDrawIndex: number | null;
   referenceDrawDate: string | null;
@@ -285,4 +295,68 @@ export interface MarkovScoreModel {
   bucketSummaries: MarkovScoreBucketSummary[];
   predictions: MarkovScorePrediction[];
   latestProfile: MarkovScoreDrawProfile | null;
+}
+
+export interface BayesianMarkovBucketSummary {
+  bucket: number;
+  opportunities: number;
+  hits: number;
+  observedRate: number;
+  posteriorMean: number;
+  posteriorMedian: number;
+  credibleLow90: number;
+  credibleHigh90: number;
+  score: number;
+  bandId: string;
+  label: string;
+}
+
+export interface BayesianMarkovPrediction {
+  number: number;
+  rank: number;
+  score: number;
+  currentGap: number;
+  bucket: number;
+  posteriorMean: number;
+  posteriorMedian: number;
+  credibleLow90: number;
+  credibleHigh90: number;
+  bandId: string;
+  label: string;
+}
+
+export interface BayesianMarkovProfileNumber {
+  number: number;
+  gap: number;
+  bucket: number;
+  score: number;
+  posteriorMean: number;
+  credibleLow90: number;
+  credibleHigh90: number;
+  bandId: string;
+  label: string;
+}
+
+export interface BayesianMarkovModel {
+  name: string;
+  model: string;
+  totalDraws: number;
+  firstDraw: string;
+  lastDraw: string;
+  maxGapBucket: number;
+  numbersPerDraw: number;
+  numberCount: number;
+  priorStrength: number;
+  posteriorDraws: number;
+  tuneDraws: number;
+  chains: number;
+  randomSeed: number;
+  topNumbers: number[];
+  bucketSummaries: BayesianMarkovBucketSummary[];
+  predictions: BayesianMarkovPrediction[];
+  latestProfile: {
+    date: string;
+    signature: string;
+    numbers: BayesianMarkovProfileNumber[];
+  };
 }

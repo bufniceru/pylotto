@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import StatisticsReferenceNavigation from "./StatisticsReferenceNavigation.vue";
+import WorkspaceTabs from "./WorkspaceTabs.vue";
 import type { MarkovScoreModel, WorkspaceTab, WorkspaceView } from "../types";
 
 const props = defineProps<{
@@ -44,28 +45,13 @@ function bandColor(bandId: string): string {
 </script>
 
 <template>
-  <div class="dialog-backdrop" @click.self="emit('close')">
-    <section class="dialog-shell dialog-shell-wide">
-      <header class="dialog-header">
-        <div>
-          <p class="eyebrow">Statistics / Views</p>
-          <h2>100 Markov Score</h2>
-        </div>
-        <button class="ghost-button" type="button" @click="emit('close')">Close</button>
-      </header>
-
-      <nav class="mdi-tabs" aria-label="Open workspace views">
-        <button
-          v-for="tab in workspaceTabs"
-          :key="tab.id"
-          class="mdi-tab"
-          :class="{ active: activeWorkspaceView === tab.id }"
-          type="button"
-          @click="emit('switchWorkspaceView', tab.id)"
-        >
-          {{ tab.label }}
-        </button>
-      </nav>
+  <div class="dialog-backdrop draws-workspace-backdrop">
+    <section class="dialog-shell markov-score-dialog-shell">
+      <WorkspaceTabs
+        :active-workspace-view="activeWorkspaceView"
+        :workspace-tabs="workspaceTabs"
+        @switch-workspace-view="emit('switchWorkspaceView', $event)"
+      />
 
       <StatisticsReferenceNavigation
         :max-reference-draw-offset="maxReferenceDrawOffset"
@@ -75,9 +61,7 @@ function bandColor(bandId: string): string {
         @latest-reference-draw="emit('latestReferenceDraw')"
         @next-reference-draw="emit('nextReferenceDraw')"
         @previous-reference-draw="emit('previousReferenceDraw')"
-      />
-
-      <div class="dialog-toolbar">
+      >
         <p class="reference-pill">
           Draws
           <strong>{{ model.drawCount }}</strong>
@@ -87,10 +71,6 @@ function bandColor(bandId: string): string {
           <strong>{{ model.situationCount }}</strong>
         </p>
         <p class="reference-pill">
-          Latest
-          <strong>{{ model.latestProfile?.date ?? "n/a" }}</strong>
-        </p>
-        <p class="reference-pill">
           Half-life
           <strong>{{ model.halfLife }}</strong>
         </p>
@@ -98,7 +78,7 @@ function bandColor(bandId: string): string {
           Max bucket
           <strong>{{ model.maxGapBucket }}</strong>
         </p>
-      </div>
+      </StatisticsReferenceNavigation>
 
       <div class="dialog-body freshness-dialog-body">
         <section class="freshness-band">

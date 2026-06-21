@@ -234,6 +234,10 @@ function buildApplicationMenu() {
                 label: "Browse Draws",
                 click: () => sendMenuAction("openDraws"),
               },
+              {
+                label: "All Draws",
+                click: () => sendMenuAction("openAllDraws"),
+              },
             ],
           },
           {
@@ -241,7 +245,20 @@ function buildApplicationMenu() {
             submenu: [
               {
                 label: "Next Possible Draw",
-                click: () => sendMenuAction("openNextPossibleDraw"),
+                submenu: [
+                  {
+                    label: "Possible Draw",
+                    click: () => sendMenuAction("openNextPossibleDrawPossible"),
+                  },
+                  {
+                    label: "Predictive Score Grid",
+                    click: () => sendMenuAction("openNextPossibleDrawScoreGrid"),
+                  },
+                  {
+                    label: "Real Draw",
+                    click: () => sendMenuAction("openNextPossibleDrawReal"),
+                  },
+                ],
               },
             ],
           },
@@ -266,6 +283,10 @@ function buildApplicationMenu() {
                 click: () => sendMenuAction("openLastSeenDifferenceHighlight"),
               },
               {
+                label: "Entropy Report",
+                click: () => sendMenuAction("openEntropyReport"),
+              },
+              {
                 label: "Freshness Report",
                 click: () => sendMenuAction("openFreshnessReport"),
               },
@@ -276,6 +297,19 @@ function buildApplicationMenu() {
               {
                 label: "100 Markov Score",
                 click: () => sendMenuAction("openMarkovScoreReport"),
+              },
+              {
+                label: "Bayesian Markov Score",
+                click: () => sendMenuAction("openBayesianMarkovReport"),
+              },
+            ],
+          },
+          {
+            label: "Graphs",
+            submenu: [
+              {
+                label: "Score Timeline",
+                click: () => sendMenuAction("openScoreGraphs"),
               },
             ],
           },

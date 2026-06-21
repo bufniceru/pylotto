@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import StatisticsReferenceNavigation from "./StatisticsReferenceNavigation.vue";
+import WorkspaceTabs from "./WorkspaceTabs.vue";
 import { buildFreshnessReportSvg } from "../lib/freshnessReportSvg";
-import type { FreshnessModel, WorkspaceTab, WorkspaceView } from "../types";
+import type { EnrichedDraw, FreshnessModel, WorkspaceTab, WorkspaceView } from "../types";
 
 const props = defineProps<{
   activeWorkspaceView: WorkspaceView;
   maxReferenceDrawOffset: number;
   model: FreshnessModel;
+  nextActualDraw: EnrichedDraw | null;
   referenceDrawOffset: number;
   workspaceTabs: WorkspaceTab[];
 }>();
@@ -28,6 +30,9 @@ const maxDrawnCount = Math.max(
 );
 const exportState = ref<"idle" | "saving" | "saved" | "error">("idle");
 const exportedReportPath = ref<string | null>(null);
+const hitNumbers = computed(
+  () => new Set(props.nextActualDraw?.numbers.map((number) => number.value) ?? []),
+);
 
 function percent(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
@@ -70,28 +75,13 @@ async function exportFreshnessSvg(): Promise<void> {
 </script>
 
 <template>
-  <div class="dialog-backdrop" @click.self="emit('close')">
-    <section class="dialog-shell dialog-shell-wide">
-      <header class="dialog-header">
-        <div>
-          <p class="eyebrow">Statistics / Views</p>
-          <h2>Freshness Report</h2>
-        </div>
-        <button class="ghost-button" type="button" @click="emit('close')">Close</button>
-      </header>
-
-      <nav class="mdi-tabs" aria-label="Open workspace views">
-        <button
-          v-for="tab in workspaceTabs"
-          :key="tab.id"
-          class="mdi-tab"
-          :class="{ active: activeWorkspaceView === tab.id }"
-          type="button"
-          @click="emit('switchWorkspaceView', tab.id)"
-        >
-          {{ tab.label }}
-        </button>
-      </nav>
+  <div class="dialog-backdrop draws-workspace-backdrop">
+    <section class="dialog-shell freshness-dialog-shell">
+      <WorkspaceTabs
+        :active-workspace-view="activeWorkspaceView"
+        :workspace-tabs="workspaceTabs"
+        @switch-workspace-view="emit('switchWorkspaceView', $event)"
+      />
 
       <StatisticsReferenceNavigation
         :max-reference-draw-offset="maxReferenceDrawOffset"
@@ -101,9 +91,7 @@ async function exportFreshnessSvg(): Promise<void> {
         @latest-reference-draw="emit('latestReferenceDraw')"
         @next-reference-draw="emit('nextReferenceDraw')"
         @previous-reference-draw="emit('previousReferenceDraw')"
-      />
-
-      <div class="dialog-toolbar">
+      >
         <p class="reference-pill">
           Draws
           <strong>{{ model.drawCount }}</strong>
@@ -111,10 +99,6 @@ async function exportFreshnessSvg(): Promise<void> {
         <p class="reference-pill">
           Situations
           <strong>{{ model.situationCount }}</strong>
-        </p>
-        <p class="reference-pill">
-          Latest
-          <strong>{{ model.latestProfile?.date ?? "n/a" }}</strong>
         </p>
         <button
           class="action-button"
@@ -130,7 +114,7 @@ async function exportFreshnessSvg(): Promise<void> {
         <p v-else-if="exportState === 'error'" class="report-status error">
           SVG export failed
         </p>
-      </div>
+      </StatisticsReferenceNavigation>
 
       <div class="dialog-body freshness-dialog-body">
         <section class="freshness-band">
@@ -239,6 +223,7 @@ async function exportFreshnessSvg(): Promise<void> {
                 v-for="prediction in model.predictions"
                 :key="prediction.number"
                 class="freshness-prediction-cell"
+                :class="{ 'prediction-hit': hitNumbers.has(prediction.number) }"
                 :style="{ '--bucket-color': bucketColor(prediction.bucketId) }"
                 :title="`${prediction.label} | gap ${gapLabel(prediction.currentGap)} | hit rate ${percent(prediction.hitRate)}`"
               >
@@ -260,7 +245,14 @@ async function exportFreshnessSvg(): Promise<void> {
                 class="freshness-row"
               >
                 <span>{{ prediction.rank }}</span>
-                <span>{{ prediction.number }}</span>
+                <span>
+                  <b
+                    class="prediction-number-marker"
+                    :class="{ 'prediction-hit': hitNumbers.has(prediction.number) }"
+                  >
+                    {{ prediction.number }}
+                  </b>
+                </span>
                 <span>{{ prediction.label }}</span>
                 <span>{{ gapLabel(prediction.currentGap) }}</span>
                 <span>{{ percent(prediction.hitRate) }}</span>

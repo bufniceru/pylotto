@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import predictiveScoreGridJson from "../data/predictive-score-grid.json";
+import WorkspaceTabs from "./WorkspaceTabs.vue";
 import type { PredictiveScoreGrid, PredictiveScoreNumber, WorkspaceTab, WorkspaceView } from "../types";
 
 const nextDrawStorageKey = "pylotto.nextPossibleDrawNumbers";
 const droppedDrawStorageKey = "pylotto.nextPossibleDrawDroppedNumbers";
 const uncertainDrawStorageKey = "pylotto.nextPossibleDrawUncertainNumbers";
+const realDrawDateStorageKey = "pylotto.realDrawDate";
+const realDrawNumbersByDateStorageKey = "pylotto.realDrawNumbersByDate";
 type NextDrawTab = "possible" | "scoreGrid" | "real";
 interface NextPossibleDrawState {
   selectedNumbers: number[];
   droppedNumbers: number[];
   uncertainNumbers: number[];
 }
+
+type RealDrawNumbersByDate = Record<string, number[]>;
 
 function todayIsoDate(): string {
   const today = new Date();
@@ -27,7 +32,7 @@ const emit = defineEmits<{
   switchWorkspaceView: [value: WorkspaceView];
 }>();
 
-defineProps<{
+const props = defineProps<{
   activeWorkspaceView: WorkspaceView;
   workspaceTabs: WorkspaceTab[];
 }>();
@@ -57,6 +62,60 @@ function loadStoredNumbers(storageKey: string, maximumCount = Infinity): number[
   } catch {
     return [];
   }
+}
+
+function loadStoredDate(storageKey: string, fallbackDate: string): string {
+  try {
+    const storedValue = window.localStorage.getItem(storageKey);
+    const date = String(storedValue ?? "").trim();
+
+    return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : fallbackDate;
+  } catch {
+    return fallbackDate;
+  }
+}
+
+function loadStoredRealDrawNumbersByDate(): RealDrawNumbersByDate {
+  try {
+    const storedValue = window.localStorage.getItem(realDrawNumbersByDateStorageKey);
+    const parsedValue: unknown = storedValue === null ? {} : JSON.parse(storedValue);
+
+    if (typeof parsedValue !== "object" || parsedValue === null || Array.isArray(parsedValue)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsedValue)
+        .filter(([date]) => /^\d{4}-\d{2}-\d{2}$/.test(date))
+        .map(([date, numbers]) => [date, normalizeNumbers(numbers, 6)]),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function saveStoredRealDrawNumbersByDate(numbersByDate: RealDrawNumbersByDate): void {
+  try {
+    window.localStorage.setItem(realDrawNumbersByDateStorageKey, JSON.stringify(numbersByDate));
+  } catch {
+    // The in-memory state remains usable if local storage is unavailable.
+  }
+}
+
+function loadStoredRealDrawNumbers(date: string): number[] {
+  return loadStoredRealDrawNumbersByDate()[date] ?? [];
+}
+
+function saveStoredRealDrawState(date: string, numbers: number[]): void {
+  try {
+    window.localStorage.setItem(realDrawDateStorageKey, date);
+  } catch {
+    // Ignore storage failures; the current tab state still works.
+  }
+
+  const numbersByDate = loadStoredRealDrawNumbersByDate();
+  numbersByDate[date] = normalizeNumbers(numbers, 6);
+  saveStoredRealDrawNumbersByDate(numbersByDate);
 }
 
 function loadLocalNextPossibleDrawState(): NextPossibleDrawState {
@@ -117,9 +176,19 @@ const localState = loadLocalNextPossibleDrawState();
 const nextDrawNumbers = ref<Set<number>>(new Set(localState.selectedNumbers));
 const droppedDrawNumbers = ref<Set<number>>(new Set(localState.droppedNumbers));
 const uncertainDrawNumbers = ref<Set<number>>(new Set(localState.uncertainNumbers));
-const activeTab = ref<NextDrawTab>("possible");
-const realDrawDate = ref(todayIsoDate());
-const realDrawNumbers = ref<Set<number>>(new Set());
+const activeTab = computed<NextDrawTab>(() => {
+  if (props.activeWorkspaceView === "nextPossibleDrawScoreGrid") {
+    return "scoreGrid";
+  }
+
+  if (props.activeWorkspaceView === "nextPossibleDrawReal") {
+    return "real";
+  }
+
+  return "possible";
+});
+const realDrawDate = ref(loadStoredDate(realDrawDateStorageKey, todayIsoDate()));
+const realDrawNumbers = ref<Set<number>>(new Set(loadStoredRealDrawNumbers(realDrawDate.value)));
 const realDrawSaveError = ref("");
 const realDrawSaveMessage = ref("");
 const isSavingRealDraw = ref(false);
@@ -127,6 +196,9 @@ const selectedPredictiveRank = ref(1);
 const nextDrawCount = computed(() => nextDrawNumbers.value.size);
 const droppedDrawCount = computed(() => droppedDrawNumbers.value.size);
 const uncertainDrawCount = computed(() => uncertainDrawNumbers.value.size);
+const planningNumberCount = computed(
+  () => nextDrawCount.value + droppedDrawCount.value + uncertainDrawCount.value,
+);
 const predictiveScoreGrid = predictiveScoreGridJson as PredictiveScoreGrid;
 const scoreRowsByNumber = computed(() => {
   const rows = new Map<number, PredictiveScoreNumber>();
@@ -246,7 +318,17 @@ watch([nextDrawNumbers, droppedDrawNumbers, uncertainDrawNumbers], () => {
 });
 
 watch(realDrawDate, (date) => {
+  try {
+    window.localStorage.setItem(realDrawDateStorageKey, date);
+  } catch {
+    // Ignore storage failures; the current tab state still works.
+  }
+
   void loadRealDrawForDate(date);
+});
+
+watch(realDrawNumbers, () => {
+  saveStoredRealDrawState(realDrawDate.value, selectedRealDrawNumbers.value);
 });
 
 function clearClickTimer(): void {
@@ -372,7 +454,10 @@ function selectPredictiveNumberRank(number: number): void {
 }
 
 function resetNextDrawNumbers(): void {
+  clearClickTimer();
   nextDrawNumbers.value = new Set();
+  droppedDrawNumbers.value = new Set();
+  uncertainDrawNumbers.value = new Set();
 }
 
 function toggleRealDrawNumber(number: number): void {
@@ -433,7 +518,7 @@ async function loadRealDrawForDate(date: string): Promise<void> {
     const currentDraw = history?.draws.find((draw) => draw.date === date);
 
     realDrawNumbers.value = new Set(
-      currentDraw ? normalizeNumbers(currentDraw.numbers, 6) : [],
+      currentDraw ? normalizeNumbers(currentDraw.numbers, 6) : loadStoredRealDrawNumbers(date),
     );
     realDrawSaveError.value = "";
     realDrawSaveMessage.value = "";
@@ -544,42 +629,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="dialog-backdrop" @click.self="emit('close')">
+  <div class="dialog-backdrop draws-workspace-backdrop">
     <section class="dialog-shell next-possible-draw-dialog-shell">
-      <header class="dialog-header">
-        <div>
-          <p class="eyebrow">File / Planning / Next Possible Draw</p>
-          <h2>Next Possible Draw</h2>
-        </div>
-        <button class="ghost-button" type="button" @click="emit('close')">Close</button>
-      </header>
-
-      <nav class="view-tabs" aria-label="Next possible draw views">
-        <button
-          class="view-tab"
-          :class="{ active: activeTab === 'possible' }"
-          type="button"
-          @click="activeTab = 'possible'"
-        >
-          Possible Draw
-        </button>
-        <button
-          class="view-tab"
-          :class="{ active: activeTab === 'scoreGrid' }"
-          type="button"
-          @click="activeTab = 'scoreGrid'"
-        >
-          Predictive Score Grid
-        </button>
-        <button
-          class="view-tab"
-          :class="{ active: activeTab === 'real' }"
-          type="button"
-          @click="activeTab = 'real'"
-        >
-          Real Draw
-        </button>
-      </nav>
+      <WorkspaceTabs
+        :active-workspace-view="activeWorkspaceView"
+        :workspace-tabs="workspaceTabs"
+        @switch-workspace-view="emit('switchWorkspaceView', $event)"
+      />
 
       <div class="dialog-toolbar">
         <p class="reference-pill next-draw-reference">
@@ -610,9 +666,31 @@ onMounted(() => {
           of
           <strong>6</strong>
         </p>
+        <template v-if="activeTab === 'real'">
+          <label class="rank-input-label real-draw-date-label">
+            Date
+            <input v-model="realDrawDate" type="date">
+          </label>
+          <button
+            class="ghost-button compact-button"
+            :disabled="selectedRealDrawNumbers.length === 0"
+            type="button"
+            @click="resetRealDrawNumbers"
+          >
+            Reset
+          </button>
+          <button
+            class="action-button primary compact-button"
+            :disabled="!canSaveRealDraw"
+            type="button"
+            @click="saveRealDraw"
+          >
+            {{ isSavingRealDraw ? "Saving" : "Save Draw" }}
+          </button>
+        </template>
         <button
           class="ghost-button compact-button"
-          :disabled="nextDrawCount === 0"
+          :disabled="planningNumberCount === 0"
           type="button"
           @click="resetNextDrawNumbers"
         >
@@ -742,29 +820,6 @@ onMounted(() => {
         </div>
 
         <div v-else-if="activeTab === 'real'" class="draw-section real-draw-section">
-          <div class="real-draw-controls">
-            <label class="rank-input-label real-draw-date-label">
-              Date
-              <input v-model="realDrawDate" type="date">
-            </label>
-            <button
-              class="ghost-button compact-button"
-              :disabled="selectedRealDrawNumbers.length === 0"
-              type="button"
-              @click="resetRealDrawNumbers"
-            >
-              Reset
-            </button>
-            <button
-              class="action-button primary compact-button"
-              :disabled="!canSaveRealDraw"
-              type="button"
-              @click="saveRealDraw"
-            >
-              {{ isSavingRealDraw ? "Saving" : "Save Draw" }}
-            </button>
-          </div>
-
           <div class="draw-grid" role="grid" aria-label="Real draw numbers">
             <button
               v-for="number in 49"

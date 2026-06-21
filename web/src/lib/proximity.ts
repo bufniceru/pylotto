@@ -121,6 +121,20 @@ function emptyBucketCountMap(): Map<string, number> {
   return new Map(proximityBuckets.map((bucket) => [bucket.id, 0]));
 }
 
+function countNumbersNeededToCoverDraw(
+  drawnValues: number[],
+  rankedNumbers: number[],
+  coverSize: number,
+): number {
+  const rankByNumber = new Map(rankedNumbers.map((number, index) => [number, index + 1]));
+  const ranks = drawnValues
+    .map((number) => rankByNumber.get(number) ?? 49)
+    .sort((left, right) => left - right);
+  const coverIndex = Math.min(Math.max(coverSize, 1), ranks.length) - 1;
+
+  return ranks[coverIndex] ?? 49;
+}
+
 export function buildProximityModel(history: EnrichedHistory): ProximityModel {
   const situationCounts = new Map<string, ProximitySituation>();
   const bucketCounts = emptyBucketCountMap();
@@ -251,4 +265,108 @@ export function buildProximityModel(history: EnrichedHistory): ProximityModel {
     predictions,
     latestProfile,
   };
+}
+
+export function buildProximityPredictionScores(history: EnrichedHistory): (number | null)[] {
+  return buildProximityPredictionResults(history).scores;
+}
+
+export function buildProximityPredictionCoverCounts(
+  history: EnrichedHistory,
+  coverSize = 6,
+): (number | null)[] {
+  return buildProximityPredictionResults(history, coverSize).coverCounts;
+}
+
+function buildProximityPredictionResults(
+  history: EnrichedHistory,
+  coverSize = 6,
+): {
+  coverCounts: (number | null)[];
+  scores: (number | null)[];
+} {
+  const bucketCounts = emptyBucketCountMap();
+  const numberAppearances = new Map<number, number>();
+  const numberBucketCounts = new Map<number, Map<string, number>>();
+  const coverCounts: (number | null)[] = [];
+  const scores: (number | null)[] = [];
+
+  for (let number = 1; number <= 49; number += 1) {
+    numberAppearances.set(number, 0);
+    numberBucketCounts.set(number, emptyBucketCountMap());
+  }
+
+  history.draws.forEach((draw, drawIndex) => {
+    if (drawIndex === 0) {
+      coverCounts.push(null);
+      scores.push(null);
+    } else {
+      const totalDrawnNumbers = drawIndex * 6;
+      const bucketShare = new Map(
+        proximityBuckets.map((bucket) => [
+          bucket.id,
+          totalDrawnNumbers === 0 ? 0 : (bucketCounts.get(bucket.id) ?? 0) / totalDrawnNumbers,
+        ]),
+      );
+      const predictions = Array.from({ length: 49 }, (_value, index) => {
+        const number = index + 1;
+        const appearances = numberAppearances.get(number) ?? 0;
+        const countsForNumber = numberBucketCounts.get(number) ?? emptyBucketCountMap();
+        let score = 0;
+
+        for (const bucket of proximityBuckets) {
+          const count = countsForNumber.get(bucket.id) ?? 0;
+          score += count * (bucketShare.get(bucket.id) ?? 0);
+        }
+
+        return {
+          number,
+          appearances,
+          score: score / drawIndex,
+          rank: 0,
+        };
+      })
+        .sort(
+          (left, right) =>
+            right.score - left.score ||
+            right.appearances - left.appearances ||
+            left.number - right.number,
+        )
+        .map((prediction, index) => ({
+          ...prediction,
+          rank: index + 1,
+        }));
+      const rankByNumber = new Map(
+        predictions.map((prediction) => [prediction.number, prediction.rank]),
+      );
+      const rankedNumbers = predictions.map((prediction) => prediction.number);
+      const drawScore =
+        draw.numbers.reduce((total, number) => {
+          const rank = rankByNumber.get(number.value) ?? 49;
+
+          return total + ((49 - rank) / 48) * 100;
+        }, 0) / draw.numbers.length;
+
+      coverCounts.push(
+        countNumbersNeededToCoverDraw(
+          draw.numbers.map((number) => number.value),
+          rankedNumbers,
+          coverSize,
+        ),
+      );
+      scores.push(drawScore);
+    }
+
+    const numbers = analyzeDraw(draw);
+
+    for (const number of numbers) {
+      bucketCounts.set(number.bucketId, (bucketCounts.get(number.bucketId) ?? 0) + 1);
+      numberAppearances.set(number.number, (numberAppearances.get(number.number) ?? 0) + 1);
+      const countsForNumber = numberBucketCounts.get(number.number) ?? emptyBucketCountMap();
+      countsForNumber.set(number.bucketId, (countsForNumber.get(number.bucketId) ?? 0) + 1);
+      numberBucketCounts.set(number.number, countsForNumber);
+    }
+  });
+
+  return { coverCounts, scores };
 }
