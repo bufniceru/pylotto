@@ -23,6 +23,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
+  closeWorkspaceView: [value: WorkspaceView];
   firstReferenceDraw: [];
   latestReferenceDraw: [];
   nextReferenceDraw: [];
@@ -231,6 +232,7 @@ const latestProfile = computed<{
       <WorkspaceTabs
         :active-workspace-view="activeWorkspaceView"
         :workspace-tabs="workspaceTabs"
+        @close-workspace-view="emit('closeWorkspaceView', $event)"
         @switch-workspace-view="emit('switchWorkspaceView', $event)"
       />
 

@@ -1,9 +1,11 @@
 const { app, BrowserWindow, Menu, ipcMain } = require("electron");
+const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const yaml = require("js-yaml");
 
 const isDev = !app.isPackaged;
+const authStoreFileName = "users.json";
 const nextPossibleDrawStateFileName = "next-possible-draw.json";
 
 function normalizeDrawNumbers(values, maximumCount = Infinity) {
@@ -23,11 +25,32 @@ function normalizeDrawNumbers(values, maximumCount = Infinity) {
 }
 
 function normalizeNextPossibleDrawState(state) {
-  return {
-    selectedNumbers: normalizeDrawNumbers(state?.selectedNumbers, 6),
-    droppedNumbers: normalizeDrawNumbers(state?.droppedNumbers),
-    uncertainNumbers: normalizeDrawNumbers(state?.uncertainNumbers),
-  };
+  const createPlan = (plan, index) => ({
+    id: String(plan?.id ?? `draw-${index + 1}`),
+    name: String(plan?.name ?? `Draw ${index + 1}`).slice(0, 40),
+    selectedNumbers: normalizeDrawNumbers(plan?.selectedNumbers, 6),
+    droppedNumbers: normalizeDrawNumbers(plan?.droppedNumbers),
+    uncertainNumbers: normalizeDrawNumbers(plan?.uncertainNumbers),
+  });
+  const plans = Array.isArray(state?.plans) && state.plans.length > 0
+    ? state.plans.map((plan, index) => createPlan(plan, index))
+    : [
+        createPlan(
+          {
+            id: "draw-1",
+            name: "Draw 1",
+            selectedNumbers: state?.selectedNumbers,
+            droppedNumbers: state?.droppedNumbers,
+            uncertainNumbers: state?.uncertainNumbers,
+          },
+          0,
+        ),
+      ];
+  const activePlanId = plans.some((plan) => plan.id === state?.activePlanId)
+    ? String(state.activePlanId)
+    : plans[0].id;
+
+  return { activePlanId, plans };
 }
 
 function normalizeDrawDate(value) {
@@ -40,8 +63,159 @@ function normalizeDrawDate(value) {
   return date;
 }
 
-function nextPossibleDrawStatePath() {
-  return path.join(app.getPath("userData"), nextPossibleDrawStateFileName);
+function authStorePath() {
+  return path.join(app.getPath("userData"), authStoreFileName);
+}
+
+function normalizeEmail(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function validateAuthInput(email, password) {
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedPassword = String(password ?? "");
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    throw new Error("Enter a valid email address.");
+  }
+
+  if (normalizedPassword.length < 6) {
+    throw new Error("Password must contain at least 6 characters.");
+  }
+
+  return { email: normalizedEmail, password: normalizedPassword };
+}
+
+function userStorageKey(email) {
+  return crypto.createHash("sha256").update(email).digest("hex").slice(0, 24);
+}
+
+function nextPossibleDrawStatePath(email) {
+  return path.join(
+    app.getPath("userData"),
+    "users",
+    userStorageKey(email),
+    nextPossibleDrawStateFileName,
+  );
+}
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
+  const hash = crypto.pbkdf2Sync(password, salt, 210000, 32, "sha256").toString("hex");
+
+  return { salt, hash };
+}
+
+function verifyPassword(password, salt, expectedHash) {
+  const actualHash = hashPassword(password, salt).hash;
+  const actual = Buffer.from(actualHash, "hex");
+  const expected = Buffer.from(String(expectedHash ?? ""), "hex");
+
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+}
+
+function publicUser(user) {
+  return user ? { email: user.email } : null;
+}
+
+async function loadAuthStore() {
+  try {
+    const fileContent = await fs.readFile(authStorePath(), "utf8");
+    const parsed = JSON.parse(fileContent);
+
+    return {
+      currentUserEmail: normalizeEmail(parsed?.currentUserEmail),
+      users: Array.isArray(parsed?.users) ? parsed.users : [],
+    };
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return { currentUserEmail: "", users: [] };
+    }
+
+    throw error;
+  }
+}
+
+async function saveAuthStore(store) {
+  await fs.mkdir(path.dirname(authStorePath()), { recursive: true });
+  await fs.writeFile(
+    authStorePath(),
+    JSON.stringify(
+      {
+        currentUserEmail: normalizeEmail(store.currentUserEmail),
+        users: store.users,
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+}
+
+async function getCurrentUser() {
+  const store = await loadAuthStore();
+  const currentEmail = normalizeEmail(store.currentUserEmail);
+  const user = store.users.find((candidate) => candidate.email === currentEmail);
+
+  return publicUser(user);
+}
+
+async function requireCurrentUser() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    throw new Error("Sign in before using user-specific planning data.");
+  }
+
+  return user;
+}
+
+async function registerUser(payload) {
+  const { email, password } = validateAuthInput(payload?.email, payload?.password);
+  const store = await loadAuthStore();
+
+  if (store.users.some((user) => user.email === email)) {
+    throw new Error("An account with this email already exists.");
+  }
+
+  const passwordHash = hashPassword(password);
+  const user = {
+    email,
+    passwordHash: passwordHash.hash,
+    passwordSalt: passwordHash.salt,
+    createdAt: new Date().toISOString(),
+  };
+
+  store.users.push(user);
+  store.currentUserEmail = email;
+  await saveAuthStore(store);
+  buildApplicationMenu(true);
+
+  return publicUser(user);
+}
+
+async function loginUser(payload) {
+  const { email, password } = validateAuthInput(payload?.email, payload?.password);
+  const store = await loadAuthStore();
+  const user = store.users.find((candidate) => candidate.email === email);
+
+  if (!user || !verifyPassword(password, user.passwordSalt, user.passwordHash)) {
+    throw new Error("Email or password is incorrect.");
+  }
+
+  store.currentUserEmail = email;
+  await saveAuthStore(store);
+  buildApplicationMenu(true);
+
+  return publicUser(user);
+}
+
+async function logoutUser() {
+  const store = await loadAuthStore();
+  store.currentUserEmail = "";
+  await saveAuthStore(store);
+  buildApplicationMenu(false);
+
+  return null;
 }
 
 function lottoYamlPath() {
@@ -53,11 +227,20 @@ function lottoYamlPath() {
   return path.join(executableDirectory, "data", "lotto_results.yaml");
 }
 
-async function ensureLottoYamlPath() {
-  const candidatePaths = [
+function lottoYamlCandidatePaths() {
+  const executableDirectory = process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(app.getPath("exe"));
+  const candidates = [
     lottoYamlPath(),
+    path.resolve(__dirname, "../../data/lotto_results.yaml"),
+    path.join(executableDirectory, "data", "lotto_results.yaml"),
     path.join(path.dirname(app.getPath("exe")), "data", "lotto_results.yaml"),
   ];
+
+  return [...new Set(candidates.map((candidatePath) => path.normalize(candidatePath)))];
+}
+
+async function ensureLottoYamlPath() {
+  const candidatePaths = lottoYamlCandidatePaths();
 
   for (const candidatePath of candidatePaths) {
     try {
@@ -71,6 +254,23 @@ async function ensureLottoYamlPath() {
   }
 
   throw new Error(`Could not find lotto_results.yaml. Checked: ${candidatePaths.join(", ")}`);
+}
+
+async function existingLottoYamlPaths() {
+  const paths = [];
+
+  for (const candidatePath of lottoYamlCandidatePaths()) {
+    try {
+      await fs.access(candidatePath);
+      paths.push(candidatePath);
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+
+  return paths;
 }
 
 function reportsPath() {
@@ -111,8 +311,10 @@ async function loadLottoHistory() {
 }
 
 async function loadNextPossibleDrawState() {
+  const user = await requireCurrentUser();
+
   try {
-    const fileContent = await fs.readFile(nextPossibleDrawStatePath(), "utf8");
+    const fileContent = await fs.readFile(nextPossibleDrawStatePath(user.email), "utf8");
     return normalizeNextPossibleDrawState(JSON.parse(fileContent));
   } catch (error) {
     if (error?.code === "ENOENT") {
@@ -124,10 +326,11 @@ async function loadNextPossibleDrawState() {
 }
 
 async function saveNextPossibleDrawState(state) {
+  const user = await requireCurrentUser();
   const normalizedState = normalizeNextPossibleDrawState(state);
-  await fs.mkdir(path.dirname(nextPossibleDrawStatePath()), { recursive: true });
+  await fs.mkdir(path.dirname(nextPossibleDrawStatePath(user.email)), { recursive: true });
   await fs.writeFile(
-    nextPossibleDrawStatePath(),
+    nextPossibleDrawStatePath(user.email),
     JSON.stringify(normalizedState, null, 2),
     "utf8",
   );
@@ -165,14 +368,22 @@ async function saveRealDraw(payload) {
   lottoResults.last_draw = draws[draws.length - 1]?.date ?? drawDate;
   payloadRoot.lotto_results = lottoResults;
 
-  await fs.writeFile(
-    sourcePath,
-    yaml.dump(payloadRoot, {
+  const yamlContent = yaml.dump(payloadRoot, {
       lineWidth: 120,
       noRefs: true,
       sortKeys: false,
+    });
+  const targetPaths = await existingLottoYamlPaths();
+
+  if (!targetPaths.includes(sourcePath)) {
+    targetPaths.unshift(sourcePath);
+  }
+
+  await Promise.all(
+    targetPaths.map(async (targetPath) => {
+      await fs.mkdir(path.dirname(targetPath), { recursive: true });
+      await fs.writeFile(targetPath, yamlContent, "utf8");
     }),
-    "utf8",
   );
 
   const realDrawSet = new Set(numbers);
@@ -185,6 +396,7 @@ async function saveRealDraw(payload) {
     matchCount: matchedNumbers.length,
     totalDraws: draws.length,
     yamlPath: sourcePath,
+    mirroredYamlPaths: targetPaths,
   };
 }
 
@@ -221,7 +433,12 @@ function sendMenuAction(action, payload = undefined) {
   focusedWindow?.webContents.send("pylotto-menu-action", { action, payload });
 }
 
-function buildApplicationMenu() {
+function buildApplicationMenu(isAuthenticated = false) {
+  if (!isAuthenticated) {
+    Menu.setApplicationMenu(null);
+    return;
+  }
+
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
       {
@@ -295,6 +512,18 @@ function buildApplicationMenu() {
                 click: () => sendMenuAction("openProximityReport"),
               },
               {
+                label: "Chi-square Report",
+                click: () => sendMenuAction("openChiSquareReport"),
+              },
+              {
+                label: "Autocorrelation Report",
+                click: () => sendMenuAction("openAutocorrelationReport"),
+              },
+              {
+                label: "Co-occurrence Network",
+                click: () => sendMenuAction("openCoOccurrenceReport"),
+              },
+              {
                 label: "100 Markov Score",
                 click: () => sendMenuAction("openMarkovScoreReport"),
               },
@@ -360,6 +589,10 @@ ipcMain.on("window-control", (event, action) => {
 });
 
 ipcMain.handle("load-lotto-history", async () => loadLottoHistory());
+ipcMain.handle("auth-current-user", async () => getCurrentUser());
+ipcMain.handle("auth-register", async (_event, payload) => registerUser(payload));
+ipcMain.handle("auth-login", async (_event, payload) => loginUser(payload));
+ipcMain.handle("auth-logout", async () => logoutUser());
 ipcMain.handle("load-next-possible-draw-state", async () => loadNextPossibleDrawState());
 ipcMain.handle("save-next-possible-draw-state", async (_event, state) =>
   saveNextPossibleDrawState(state),
@@ -367,8 +600,8 @@ ipcMain.handle("save-next-possible-draw-state", async (_event, state) =>
 ipcMain.handle("save-real-draw", async (_event, payload) => saveRealDraw(payload));
 ipcMain.handle("save-report-svg", async (_event, payload) => saveReportSvg(payload));
 
-app.whenReady().then(() => {
-  buildApplicationMenu();
+app.whenReady().then(async () => {
+  buildApplicationMenu((await getCurrentUser()) !== null);
   createMainWindow();
 
   app.on("activate", () => {

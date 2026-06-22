@@ -1,19 +1,43 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import bayesianMarkovScoreJson from "../data/bayesian-markov-score.json";
 import predictiveScoreGridJson from "../data/predictive-score-grid.json";
 import WorkspaceTabs from "./WorkspaceTabs.vue";
-import type { PredictiveScoreGrid, PredictiveScoreNumber, WorkspaceTab, WorkspaceView } from "../types";
+import type {
+  BayesianMarkovModel,
+  BayesianMarkovPrediction,
+  EnrichedHistory,
+  FreshnessModel,
+  FreshnessPrediction,
+  ProximityModel,
+  ProximityPrediction,
+  PredictiveScoreGrid,
+  PredictiveScoreNumber,
+  WorkspaceTab,
+  WorkspaceView,
+} from "../types";
 
 const nextDrawStorageKey = "pylotto.nextPossibleDrawNumbers";
 const droppedDrawStorageKey = "pylotto.nextPossibleDrawDroppedNumbers";
 const uncertainDrawStorageKey = "pylotto.nextPossibleDrawUncertainNumbers";
+const possibleDrawsStorageKey = "pylotto.nextPossibleDrawPlans";
 const realDrawDateStorageKey = "pylotto.realDrawDate";
 const realDrawNumbersByDateStorageKey = "pylotto.realDrawNumbersByDate";
 type NextDrawTab = "possible" | "scoreGrid" | "real";
-interface NextPossibleDrawState {
+interface PossibleDrawPlan {
+  id: string;
+  name: string;
   selectedNumbers: number[];
   droppedNumbers: number[];
   uncertainNumbers: number[];
+}
+
+interface NextPossibleDrawState {
+  activePlanId: string;
+  plans: PossibleDrawPlan[];
+  selectedNumbers?: number[];
+  droppedNumbers?: number[];
+  uncertainNumbers?: number[];
 }
 
 type RealDrawNumbersByDate = Record<string, number[]>;
@@ -29,13 +53,26 @@ function todayIsoDate(): string {
 
 const emit = defineEmits<{
   close: [];
+  closeWorkspaceView: [value: WorkspaceView];
   switchWorkspaceView: [value: WorkspaceView];
 }>();
 
 const props = defineProps<{
   activeWorkspaceView: WorkspaceView;
+  currentUserEmail: string;
+  freshnessModel: FreshnessModel;
+  history: EnrichedHistory;
+  proximityModel: ProximityModel;
   workspaceTabs: WorkspaceTab[];
 }>();
+
+const bayesianMarkovModel = bayesianMarkovScoreJson as BayesianMarkovModel;
+const bayesianBands = [
+  { id: "elite", label: "Elite", color: "#0a562c" },
+  { id: "strong", label: "Strong", color: "#47b25c" },
+  { id: "active", label: "Active", color: "#f0b44f" },
+  { id: "soft", label: "Soft", color: "#7b8798" },
+];
 
 function normalizeNumbers(values: unknown, maximumCount = Infinity): number[] {
   if (!Array.isArray(values)) {
@@ -62,6 +99,14 @@ function loadStoredNumbers(storageKey: string, maximumCount = Infinity): number[
   } catch {
     return [];
   }
+}
+
+function userStorageSuffix(): string {
+  return props.currentUserEmail.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "_") || "guest";
+}
+
+function userStorageKey(storageKey: string): string {
+  return `${storageKey}.${userStorageSuffix()}`;
 }
 
 function loadStoredDate(storageKey: string, fallbackDate: string): string {
@@ -120,17 +165,27 @@ function saveStoredRealDrawState(date: string, numbers: number[]): void {
 
 function loadLocalNextPossibleDrawState(): NextPossibleDrawState {
   return {
-    selectedNumbers: loadStoredNumbers(nextDrawStorageKey, 6),
-    droppedNumbers: loadStoredNumbers(droppedDrawStorageKey),
-    uncertainNumbers: loadStoredNumbers(uncertainDrawStorageKey),
+    activePlanId: "draw-1",
+    plans: [
+      {
+        id: "draw-1",
+        name: "Draw 1",
+        selectedNumbers: loadStoredNumbers(userStorageKey(nextDrawStorageKey), 6),
+        droppedNumbers: loadStoredNumbers(userStorageKey(droppedDrawStorageKey)),
+        uncertainNumbers: loadStoredNumbers(userStorageKey(uncertainDrawStorageKey)),
+      },
+    ],
   };
 }
 
 function stateHasNumbers(state: NextPossibleDrawState): boolean {
-  return (
-    state.selectedNumbers.length > 0 ||
-    state.droppedNumbers.length > 0 ||
-    state.uncertainNumbers.length > 0
+  const normalizedState = normalizeNextPossibleDrawState(state);
+
+  return normalizedState.plans.some(
+    (plan) =>
+      plan.selectedNumbers.length > 0 ||
+      plan.droppedNumbers.length > 0 ||
+      plan.uncertainNumbers.length > 0,
   );
 }
 
@@ -142,40 +197,118 @@ function saveStoredNumbers(storageKey: string, numbers: number[]): void {
   }
 }
 
-function buildCurrentState(): NextPossibleDrawState {
+function createPlan(name: string, values: Partial<PossibleDrawPlan> = {}): PossibleDrawPlan {
   return {
-    selectedNumbers: normalizeNumbers([...nextDrawNumbers.value], 6),
-    droppedNumbers: normalizeNumbers([...droppedDrawNumbers.value]),
-    uncertainNumbers: normalizeNumbers([...uncertainDrawNumbers.value]),
+    id: values.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name,
+    selectedNumbers: normalizeNumbers(values.selectedNumbers, 6),
+    droppedNumbers: normalizeNumbers(values.droppedNumbers),
+    uncertainNumbers: normalizeNumbers(values.uncertainNumbers),
+  };
+}
+
+function normalizePlan(value: unknown, index: number): PossibleDrawPlan {
+  const plan = typeof value === "object" && value !== null ? value as Partial<PossibleDrawPlan> : {};
+
+  return createPlan(String(plan.name ?? `Draw ${index + 1}`), plan);
+}
+
+function normalizeNextPossibleDrawState(state: unknown): NextPossibleDrawState {
+  const rawState =
+    typeof state === "object" && state !== null
+      ? state as Partial<NextPossibleDrawState>
+      : {};
+  const rawPlans = Array.isArray(rawState.plans) ? rawState.plans : [];
+  const plans =
+    rawPlans.length > 0
+      ? rawPlans.map((plan, index) => normalizePlan(plan, index))
+      : [
+          createPlan("Draw 1", {
+            selectedNumbers: rawState.selectedNumbers,
+            droppedNumbers: rawState.droppedNumbers,
+            uncertainNumbers: rawState.uncertainNumbers,
+          }),
+        ];
+  const activePlanId = plans.some((plan) => plan.id === rawState.activePlanId)
+    ? String(rawState.activePlanId)
+    : plans[0].id;
+
+  return { activePlanId, plans };
+}
+
+function loadStoredNextPossibleDrawState(): NextPossibleDrawState | null {
+  try {
+    const storedValue = window.localStorage.getItem(userStorageKey(possibleDrawsStorageKey));
+
+    return storedValue === null ? null : normalizeNextPossibleDrawState(JSON.parse(storedValue));
+  } catch {
+    return null;
+  }
+}
+
+function saveStoredNextPossibleDrawState(state: NextPossibleDrawState): void {
+  try {
+    window.localStorage.setItem(
+      userStorageKey(possibleDrawsStorageKey),
+      JSON.stringify(normalizeNextPossibleDrawState(state)),
+    );
+  } catch {
+    // Ignore storage failures; the in-memory state still works for this session.
+  }
+}
+
+function buildCurrentState(): NextPossibleDrawState {
+  const activePlan = createPlan(activePossibleDrawPlan.value?.name ?? "Draw 1", {
+    id: activePlanId.value,
+    selectedNumbers: [...nextDrawNumbers.value],
+    droppedNumbers: [...droppedDrawNumbers.value],
+    uncertainNumbers: [...uncertainDrawNumbers.value],
+  });
+  const nextPlans = possibleDrawPlans.value.map((plan) =>
+    plan.id === activePlan.id ? activePlan : plan,
+  );
+
+  return {
+    activePlanId: activePlan.id,
+    plans: nextPlans.length > 0 ? nextPlans : [activePlan],
   };
 }
 
 function saveNextPossibleDrawState(): void {
   const state = buildCurrentState();
 
-  saveStoredNumbers(nextDrawStorageKey, state.selectedNumbers);
-  saveStoredNumbers(droppedDrawStorageKey, state.droppedNumbers);
-  saveStoredNumbers(uncertainDrawStorageKey, state.uncertainNumbers);
+  saveStoredNextPossibleDrawState(state);
   void window.pylottoDesktop?.saveNextPossibleDrawState(state).catch(() => {
     // The local storage fallback keeps planning usable if desktop persistence fails.
   });
 }
 
 function applyNextPossibleDrawState(state: NextPossibleDrawState): void {
-  const selectedNumbers = normalizeNumbers(state.selectedNumbers, 6);
-  const selectedSet = new Set(selectedNumbers);
+  const normalizedState = normalizeNextPossibleDrawState(state);
+  const activePlan =
+    normalizedState.plans.find((plan) => plan.id === normalizedState.activePlanId) ??
+    normalizedState.plans[0];
+  const selectedSet = new Set(activePlan.selectedNumbers);
 
+  possibleDrawPlans.value = normalizedState.plans;
+  activePlanId.value = activePlan.id;
   nextDrawNumbers.value = selectedSet;
-  droppedDrawNumbers.value = new Set(normalizeNumbers(state.droppedNumbers));
+  droppedDrawNumbers.value = new Set(activePlan.droppedNumbers);
   uncertainDrawNumbers.value = new Set(
-    normalizeNumbers(state.uncertainNumbers).filter((number) => !selectedSet.has(number)),
+    activePlan.uncertainNumbers.filter((number) => !selectedSet.has(number)),
   );
 }
 
-const localState = loadLocalNextPossibleDrawState();
-const nextDrawNumbers = ref<Set<number>>(new Set(localState.selectedNumbers));
-const droppedDrawNumbers = ref<Set<number>>(new Set(localState.droppedNumbers));
-const uncertainDrawNumbers = ref<Set<number>>(new Set(localState.uncertainNumbers));
+const localState = loadStoredNextPossibleDrawState() ?? loadLocalNextPossibleDrawState();
+const initialState = normalizeNextPossibleDrawState(localState);
+const initialPlan =
+  initialState.plans.find((plan) => plan.id === initialState.activePlanId) ??
+  initialState.plans[0];
+const possibleDrawPlans = ref<PossibleDrawPlan[]>(initialState.plans);
+const activePlanId = ref(initialPlan.id);
+const nextDrawNumbers = ref<Set<number>>(new Set(initialPlan.selectedNumbers));
+const droppedDrawNumbers = ref<Set<number>>(new Set(initialPlan.droppedNumbers));
+const uncertainDrawNumbers = ref<Set<number>>(new Set(initialPlan.uncertainNumbers));
 const activeTab = computed<NextDrawTab>(() => {
   if (props.activeWorkspaceView === "nextPossibleDrawScoreGrid") {
     return "scoreGrid";
@@ -193,6 +326,12 @@ const realDrawSaveError = ref("");
 const realDrawSaveMessage = ref("");
 const isSavingRealDraw = ref(false);
 const selectedPredictiveRank = ref(1);
+const selectedFreshnessNumber = ref<number | null>(null);
+const activePossibleDrawPlan = computed(
+  () =>
+    possibleDrawPlans.value.find((plan) => plan.id === activePlanId.value) ??
+    possibleDrawPlans.value[0],
+);
 const nextDrawCount = computed(() => nextDrawNumbers.value.size);
 const droppedDrawCount = computed(() => droppedDrawNumbers.value.size);
 const uncertainDrawCount = computed(() => uncertainDrawNumbers.value.size);
@@ -225,6 +364,127 @@ const selectedPredictiveNumber = computed(() => {
 
   return row?.number ?? null;
 });
+const freshnessPredictionsByNumber = computed(() => {
+  const predictions = new Map<number, FreshnessPrediction>();
+
+  for (const prediction of props.freshnessModel.predictions) {
+    predictions.set(prediction.number, prediction);
+  }
+
+  return predictions;
+});
+const selectedFreshnessPrediction = computed(() =>
+  selectedFreshnessNumber.value === null
+    ? null
+    : freshnessPredictionsByNumber.value.get(selectedFreshnessNumber.value) ?? null,
+);
+const proximityPredictionsByNumber = computed(() => {
+  const predictions = new Map<number, ProximityPrediction>();
+
+  for (const prediction of props.proximityModel.predictions) {
+    predictions.set(prediction.number, prediction);
+  }
+
+  return predictions;
+});
+const selectedProximityPrediction = computed(() =>
+  selectedFreshnessNumber.value === null
+    ? null
+    : proximityPredictionsByNumber.value.get(selectedFreshnessNumber.value) ?? null,
+);
+const bayesianBucketByGap = new Map(
+  bayesianMarkovModel.bucketSummaries.map((summary) => [summary.bucket, summary]),
+);
+const bayesianCurrentGaps = computed(() => {
+  const lastSeen = new Map<number, number | null>();
+
+  for (let number = 1; number <= bayesianMarkovModel.numberCount; number += 1) {
+    lastSeen.set(number, null);
+  }
+
+  props.history.draws.forEach((draw, drawIndex) => {
+    for (const number of draw.numbers) {
+      lastSeen.set(number.value, drawIndex);
+    }
+  });
+
+  const drawCount = props.history.draws.length;
+
+  return new Map(
+    Array.from({ length: bayesianMarkovModel.numberCount }, (_value, index) => {
+      const number = index + 1;
+      const seenAt = lastSeen.get(number) ?? null;
+
+      return [number, seenAt === null ? drawCount : drawCount - 1 - seenAt];
+    }),
+  );
+});
+const bayesianPredictions = computed<BayesianMarkovPrediction[]>(() => {
+  const posteriorMeans = new Map(
+    Array.from({ length: bayesianMarkovModel.numberCount }, (_value, index) => {
+      const number = index + 1;
+      const bucket = bayesianGapBucket(bayesianCurrentGaps.value.get(number) ?? 0);
+      const summary = bayesianBucketByGap.get(bucket);
+
+      return [number, summary?.posteriorMean ?? 0];
+    }),
+  );
+  const scaledScores = scaleBayesianScores(posteriorMeans);
+
+  return Array.from({ length: bayesianMarkovModel.numberCount }, (_value, index) => {
+    const number = index + 1;
+    const currentGap = bayesianCurrentGaps.value.get(number) ?? 0;
+    const bucket = bayesianGapBucket(currentGap);
+    const summary = bayesianBucketByGap.get(bucket);
+    const scoreValue = scaledScores.get(number) ?? 0;
+    const band = bayesianBandForScore(scoreValue);
+
+    return {
+      number,
+      rank: 0,
+      score: scoreValue,
+      currentGap,
+      bucket,
+      posteriorMean: summary?.posteriorMean ?? 0,
+      posteriorMedian: summary?.posteriorMedian ?? 0,
+      credibleLow90: summary?.credibleLow90 ?? 0,
+      credibleHigh90: summary?.credibleHigh90 ?? 0,
+      bandId: band.id,
+      label: band.label,
+    };
+  })
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        right.posteriorMean - left.posteriorMean ||
+        right.currentGap - left.currentGap ||
+        left.number - right.number,
+    )
+    .map((prediction, index) => ({
+      ...prediction,
+      rank: index + 1,
+    }));
+});
+const bayesianPredictionsByNumber = computed(
+  () => new Map(bayesianPredictions.value.map((prediction) => [prediction.number, prediction])),
+);
+const selectedBayesianPrediction = computed(() =>
+  selectedFreshnessNumber.value === null
+    ? null
+    : bayesianPredictionsByNumber.value.get(selectedFreshnessNumber.value) ?? null,
+);
+const selectedFreshnessPercent = computed(() =>
+  Math.min(Math.max(selectedFreshnessPrediction.value?.hitRate ?? 0, 0), 1),
+);
+const selectedFreshnessRankPercent = computed(() =>
+  rankMeterPercent(selectedFreshnessPrediction.value?.rank),
+);
+const selectedProximityRankPercent = computed(() =>
+  rankMeterPercent(selectedProximityPrediction.value?.rank),
+);
+const selectedBayesianRankPercent = computed(() =>
+  rankMeterPercent(selectedBayesianPrediction.value?.rank),
+);
 const selectedDrawNumbers = computed(() =>
   [...nextDrawNumbers.value].sort((left, right) => left - right),
 );
@@ -313,7 +573,69 @@ const predictionAgreementLabel = computed(() => {
 });
 let clickTimer: ReturnType<typeof setTimeout> | null = null;
 
+function persistActivePossibleDrawPlan(): void {
+  const activePlan = createPlan(activePossibleDrawPlan.value?.name ?? "Draw 1", {
+    id: activePlanId.value,
+    selectedNumbers: [...nextDrawNumbers.value],
+    droppedNumbers: [...droppedDrawNumbers.value],
+    uncertainNumbers: [...uncertainDrawNumbers.value],
+  });
+
+  possibleDrawPlans.value = possibleDrawPlans.value.map((plan) =>
+    plan.id === activePlan.id ? activePlan : plan,
+  );
+}
+
+function switchPossibleDrawPlan(planId: string): void {
+  const nextPlan = possibleDrawPlans.value.find((plan) => plan.id === planId);
+
+  if (!nextPlan || nextPlan.id === activePlanId.value) {
+    return;
+  }
+
+  persistActivePossibleDrawPlan();
+  activePlanId.value = nextPlan.id;
+  nextDrawNumbers.value = new Set(nextPlan.selectedNumbers);
+  droppedDrawNumbers.value = new Set(nextPlan.droppedNumbers);
+  uncertainDrawNumbers.value = new Set(nextPlan.uncertainNumbers);
+  selectedFreshnessNumber.value = null;
+  saveNextPossibleDrawState();
+}
+
+function createPossibleDrawPlan(): void {
+  persistActivePossibleDrawPlan();
+
+  const nextPlan = createPlan(`Draw ${possibleDrawPlans.value.length + 1}`);
+  possibleDrawPlans.value = [...possibleDrawPlans.value, nextPlan];
+  activePlanId.value = nextPlan.id;
+  nextDrawNumbers.value = new Set();
+  droppedDrawNumbers.value = new Set();
+  uncertainDrawNumbers.value = new Set();
+  selectedFreshnessNumber.value = null;
+  saveNextPossibleDrawState();
+}
+
+function deleteActivePossibleDrawPlan(): void {
+  if (possibleDrawPlans.value.length <= 1) {
+    resetNextDrawNumbers();
+    return;
+  }
+
+  const activeIndex = possibleDrawPlans.value.findIndex((plan) => plan.id === activePlanId.value);
+  const remainingPlans = possibleDrawPlans.value.filter((plan) => plan.id !== activePlanId.value);
+  const nextPlan = remainingPlans[Math.min(Math.max(activeIndex, 0), remainingPlans.length - 1)];
+
+  possibleDrawPlans.value = remainingPlans;
+  activePlanId.value = nextPlan.id;
+  nextDrawNumbers.value = new Set(nextPlan.selectedNumbers);
+  droppedDrawNumbers.value = new Set(nextPlan.droppedNumbers);
+  uncertainDrawNumbers.value = new Set(nextPlan.uncertainNumbers);
+  selectedFreshnessNumber.value = null;
+  saveNextPossibleDrawState();
+}
+
 watch([nextDrawNumbers, droppedDrawNumbers, uncertainDrawNumbers], () => {
+  persistActivePossibleDrawPlan();
   saveNextPossibleDrawState();
 });
 
@@ -546,6 +868,79 @@ function scorePercent(number: number): number {
   return Math.min(Math.max((row.score - scoreRange.value.min) / spread, 0), 1);
 }
 
+function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(2)}%`;
+}
+
+function rankMeterPercent(rank: number | undefined): number {
+  if (!rank) {
+    return 0;
+  }
+
+  return Math.max(1, ((50 - rank) / 49) * 100);
+}
+
+function freshnessBucketColor(bucketId: string | undefined): string {
+  return (
+    props.freshnessModel.buckets.find((bucket) => bucket.id === bucketId)?.color ?? "#7b8798"
+  );
+}
+
+function proximityBucketColor(bucketId: string | undefined): string {
+  return (
+    props.proximityModel.buckets.find((bucket) => bucket.id === bucketId)?.color ?? "#7b8798"
+  );
+}
+
+function bayesianBandColor(bandId: string | undefined): string {
+  return bayesianBands.find((band) => band.id === bandId)?.color ?? "#7b8798";
+}
+
+function bayesianGapBucket(gap: number): number {
+  return Math.min(Math.max(gap, 0), bayesianMarkovModel.maxGapBucket);
+}
+
+function bayesianBandForScore(scoreValue: number): { id: string; label: string } {
+  if (scoreValue >= 80) {
+    return { id: "elite", label: "Elite" };
+  }
+
+  if (scoreValue >= 60) {
+    return { id: "strong", label: "Strong" };
+  }
+
+  if (scoreValue >= 40) {
+    return { id: "active", label: "Active" };
+  }
+
+  return { id: "soft", label: "Soft" };
+}
+
+function scaleBayesianScores(values: Map<number, number>): Map<number, number> {
+  const rawValues = [...values.values()];
+  const minValue = Math.min(...rawValues);
+  const maxValue = Math.max(...rawValues);
+  const spread = maxValue - minValue;
+
+  if (spread <= 0) {
+    return new Map([...values.keys()].map((key) => [key, 0]));
+  }
+
+  return new Map(
+    [...values.entries()].map(([key, value]) => [key, ((value - minValue) / spread) * 100]),
+  );
+}
+
+function handlePossibleNumberClick(event: MouseEvent, number: number): void {
+  if (event.ctrlKey && event.altKey) {
+    clearClickTimer();
+    selectedFreshnessNumber.value = number;
+    return;
+  }
+
+  queueNextDrawToggle(number);
+}
+
 function gradientRatio(number: number): number {
   const row = scoreRowsByNumber.value.get(number);
   const maxRank = maxScoreRank.value;
@@ -634,10 +1029,37 @@ onMounted(() => {
       <WorkspaceTabs
         :active-workspace-view="activeWorkspaceView"
         :workspace-tabs="workspaceTabs"
+        @close-workspace-view="emit('closeWorkspaceView', $event)"
         @switch-workspace-view="emit('switchWorkspaceView', $event)"
       />
 
       <div class="dialog-toolbar">
+        <label class="rank-input-label possible-draw-plan-label">
+          Plan
+          <select
+            :value="activePlanId"
+            @change="switchPossibleDrawPlan(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="plan in possibleDrawPlans" :key="plan.id" :value="plan.id">
+              {{ plan.name }}
+            </option>
+          </select>
+        </label>
+        <button
+          class="ghost-button compact-button"
+          type="button"
+          @click="createPossibleDrawPlan"
+        >
+          New Draw
+        </button>
+        <button
+          class="ghost-button compact-button"
+          :disabled="possibleDrawPlans.length <= 1 && planningNumberCount === 0"
+          type="button"
+          @click="deleteActivePossibleDrawPlan"
+        >
+          Delete Draw
+        </button>
         <p class="reference-pill next-draw-reference">
           Selected
           <strong>{{ nextDrawCount }}</strong>
@@ -699,33 +1121,149 @@ onMounted(() => {
       </div>
 
       <div class="dialog-body draws-dialog-body">
-        <div v-if="activeTab === 'possible'" class="draw-section">
-          <div class="draw-grid" role="grid" aria-label="Next possible draw numbers">
-            <button
-              v-for="number in 49"
-              :key="number"
-              class="draw-cell draw-cell-button"
-              :class="{
-                available: !droppedDrawNumbers.has(number),
-                dropped: droppedDrawNumbers.has(number),
-                uncertain: uncertainDrawNumbers.has(number),
-                selected: nextDrawNumbers.has(number),
-                unavailable:
+        <div v-if="activeTab === 'possible'" class="draw-section possible-draw-section">
+          <div class="possible-draw-layout">
+            <div class="draw-grid" role="grid" aria-label="Next possible draw numbers">
+              <button
+                v-for="number in 49"
+                :key="number"
+                class="draw-cell draw-cell-button"
+                :class="{
+                  available: !droppedDrawNumbers.has(number),
+                  dropped: droppedDrawNumbers.has(number),
+                  freshnessFocused: selectedFreshnessNumber === number,
+                  uncertain: uncertainDrawNumbers.has(number),
+                  selected: nextDrawNumbers.has(number),
+                  unavailable:
+                    droppedDrawNumbers.has(number) ||
+                    (!nextDrawNumbers.has(number) && nextDrawCount >= 6),
+                }"
+                :aria-disabled="
                   droppedDrawNumbers.has(number) ||
-                  (!nextDrawNumbers.has(number) && nextDrawCount >= 6),
-              }"
-              :aria-disabled="
-                droppedDrawNumbers.has(number) ||
-                (!nextDrawNumbers.has(number) && nextDrawCount >= 6)
-              "
-              :aria-pressed="nextDrawNumbers.has(number)"
-              type="button"
-              role="gridcell"
-              @click="queueNextDrawToggle(number)"
-              @dblclick="handlePossibleNumberDoubleClick($event, number)"
-            >
-              {{ number }}
-            </button>
+                  (!nextDrawNumbers.has(number) && nextDrawCount >= 6)
+                "
+                :aria-pressed="nextDrawNumbers.has(number)"
+                type="button"
+                role="gridcell"
+                @click="handlePossibleNumberClick($event, number)"
+                @dblclick="handlePossibleNumberDoubleClick($event, number)"
+              >
+                {{ number }}
+              </button>
+            </div>
+
+            <aside class="prediction-meters-panel">
+              <section
+                class="prediction-meter-card"
+                :style="{ '--meter-color': freshnessBucketColor(selectedFreshnessPrediction?.bucketId) }"
+              >
+                <div class="prediction-meter-header">
+                  <span>Freshness</span>
+                  <strong>{{ selectedFreshnessNumber ?? "--" }}</strong>
+                </div>
+                <div class="prediction-meter-body">
+                  <div class="prediction-meter-scale" aria-hidden="true">
+                    <span>1</span>
+                    <span>13</span>
+                    <span>25</span>
+                    <span>37</span>
+                    <span>49</span>
+                  </div>
+                  <div
+                    class="prediction-meter-track"
+                    role="meter"
+                    :aria-valuemin="1"
+                    :aria-valuemax="49"
+                    :aria-valuenow="selectedFreshnessPrediction?.rank ?? 49"
+                  >
+                    <span
+                      class="prediction-meter-fill"
+                      :style="{ height: `${selectedFreshnessRankPercent}%` }"
+                    ></span>
+                  </div>
+                </div>
+                <div class="prediction-meter-details">
+                  <strong>Rank {{ selectedFreshnessPrediction?.rank ?? "n/a" }}</strong>
+                  <span>{{ selectedFreshnessPrediction?.label ?? "n/a" }}</span>
+                  <span>Hit {{ formatPercent(selectedFreshnessPercent) }}</span>
+                  <span>Gap {{ selectedFreshnessPrediction?.currentGap ?? "new" }}</span>
+                </div>
+              </section>
+
+              <section
+                class="prediction-meter-card"
+                :style="{ '--meter-color': proximityBucketColor(selectedProximityPrediction?.bucketId) }"
+              >
+                <div class="prediction-meter-header">
+                  <span>Proximity</span>
+                  <strong>{{ selectedFreshnessNumber ?? "--" }}</strong>
+                </div>
+                <div class="prediction-meter-body">
+                  <div class="prediction-meter-scale" aria-hidden="true">
+                    <span>1</span>
+                    <span>13</span>
+                    <span>25</span>
+                    <span>37</span>
+                    <span>49</span>
+                  </div>
+                  <div
+                    class="prediction-meter-track"
+                    role="meter"
+                    :aria-valuemin="1"
+                    :aria-valuemax="49"
+                    :aria-valuenow="selectedProximityPrediction?.rank ?? 49"
+                  >
+                    <span
+                      class="prediction-meter-fill"
+                      :style="{ height: `${selectedProximityRankPercent}%` }"
+                    ></span>
+                  </div>
+                </div>
+                <div class="prediction-meter-details">
+                  <strong>Rank {{ selectedProximityPrediction?.rank ?? "n/a" }}</strong>
+                  <span>{{ selectedProximityPrediction?.label ?? "n/a" }}</span>
+                  <span>Score {{ selectedProximityPrediction?.score.toFixed(4) ?? "n/a" }}</span>
+                  <span>Hits {{ selectedProximityPrediction?.appearances ?? "n/a" }}</span>
+                </div>
+              </section>
+
+              <section
+                class="prediction-meter-card"
+                :style="{ '--meter-color': bayesianBandColor(selectedBayesianPrediction?.bandId) }"
+              >
+                <div class="prediction-meter-header">
+                  <span>Bayesian</span>
+                  <strong>{{ selectedFreshnessNumber ?? "--" }}</strong>
+                </div>
+                <div class="prediction-meter-body">
+                  <div class="prediction-meter-scale" aria-hidden="true">
+                    <span>1</span>
+                    <span>13</span>
+                    <span>25</span>
+                    <span>37</span>
+                    <span>49</span>
+                  </div>
+                  <div
+                    class="prediction-meter-track"
+                    role="meter"
+                    :aria-valuemin="1"
+                    :aria-valuemax="49"
+                    :aria-valuenow="selectedBayesianPrediction?.rank ?? 49"
+                  >
+                    <span
+                      class="prediction-meter-fill"
+                      :style="{ height: `${selectedBayesianRankPercent}%` }"
+                    ></span>
+                  </div>
+                </div>
+                <div class="prediction-meter-details">
+                  <strong>Rank {{ selectedBayesianPrediction?.rank ?? "n/a" }}</strong>
+                  <span>{{ selectedBayesianPrediction?.label ?? "n/a" }}</span>
+                  <span>Score {{ selectedBayesianPrediction?.score.toFixed(1) ?? "n/a" }}</span>
+                  <span>Mean {{ formatPercent(selectedBayesianPrediction?.posteriorMean ?? 0) }}</span>
+                </div>
+              </section>
+            </aside>
           </div>
         </div>
 

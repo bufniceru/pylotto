@@ -1,18 +1,21 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import StatisticsReferenceNavigation from "./StatisticsReferenceNavigation.vue";
 import WorkspaceTabs from "./WorkspaceTabs.vue";
-import type { MarkovScoreModel, WorkspaceTab, WorkspaceView } from "../types";
+import type { EnrichedDraw, MarkovScoreModel, WorkspaceTab, WorkspaceView } from "../types";
 
 const props = defineProps<{
   activeWorkspaceView: WorkspaceView;
   maxReferenceDrawOffset: number;
   model: MarkovScoreModel;
+  nextActualDraw: EnrichedDraw | null;
   referenceDrawOffset: number;
   workspaceTabs: WorkspaceTab[];
 }>();
 
 const emit = defineEmits<{
   close: [];
+  closeWorkspaceView: [value: WorkspaceView];
   firstReferenceDraw: [];
   latestReferenceDraw: [];
   nextReferenceDraw: [];
@@ -22,6 +25,9 @@ const emit = defineEmits<{
 
 const maxSituationCount = Math.max(...props.model.situations.map((situation) => situation.count), 1);
 const maxBucketScore = Math.max(...props.model.bucketSummaries.map((summary) => summary.score), 1);
+const hitNumbers = computed(
+  () => new Set(props.nextActualDraw?.numbers.map((number) => number.value) ?? []),
+);
 const topBuckets = [...props.model.bucketSummaries]
   .sort(
     (left, right) =>
@@ -50,6 +56,7 @@ function bandColor(bandId: string): string {
       <WorkspaceTabs
         :active-workspace-view="activeWorkspaceView"
         :workspace-tabs="workspaceTabs"
+        @close-workspace-view="emit('closeWorkspaceView', $event)"
         @switch-workspace-view="emit('switchWorkspaceView', $event)"
       />
 
@@ -189,6 +196,7 @@ function bandColor(bandId: string): string {
                 v-for="prediction in model.predictions"
                 :key="prediction.number"
                 class="freshness-prediction-cell markov-score-cell"
+                :class="{ 'prediction-hit': hitNumbers.has(prediction.number) }"
                 :style="{ '--bucket-color': bandColor(prediction.bandId) }"
                 :title="`${prediction.label} | score ${score(prediction.score)} | probability ${percent(prediction.probability)} | gap ${prediction.currentGap} | bucket ${prediction.bucket}`"
               >
@@ -210,7 +218,14 @@ function bandColor(bandId: string): string {
                 class="freshness-row"
               >
                 <span>{{ prediction.rank }}</span>
-                <span>{{ prediction.number }}</span>
+                <span>
+                  <b
+                    class="prediction-number-marker"
+                    :class="{ 'prediction-hit': hitNumbers.has(prediction.number) }"
+                  >
+                    {{ prediction.number }}
+                  </b>
+                </span>
                 <span>{{ score(prediction.score) }}</span>
                 <span>{{ prediction.currentGap }}</span>
                 <span>{{ percent(prediction.probability) }}</span>

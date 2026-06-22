@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import AllDrawsDialog from "./components/AllDrawsDialog.vue";
+import AutocorrelationReportDialog from "./components/AutocorrelationReportDialog.vue";
 import BayesianMarkovReportDialog from "./components/BayesianMarkovReportDialog.vue";
+import ChiSquareReportDialog from "./components/ChiSquareReportDialog.vue";
+import CoOccurrenceReportDialog from "./components/CoOccurrenceReportDialog.vue";
 import DrawsDialog from "./components/DrawsDialog.vue";
 import DrawScoresDialog from "./components/DrawScoresDialog.vue";
 import EntropyReportDialog from "./components/EntropyReportDialog.vue";
@@ -13,6 +16,9 @@ import MarkovScoreReportDialog from "./components/MarkovScoreReportDialog.vue";
 import NextPossibleDrawDialog from "./components/NextPossibleDrawDialog.vue";
 import ProximityReportDialog from "./components/ProximityReportDialog.vue";
 import ScoreGraphsDialog from "./components/ScoreGraphsDialog.vue";
+import { buildAutocorrelationModel } from "./lib/autocorrelation";
+import { buildChiSquareModel } from "./lib/chiSquare";
+import { buildCoOccurrenceModel } from "./lib/coOccurrence";
 import { buildFreshnessModel } from "./lib/freshness";
 import { buildHistory } from "./lib/history";
 import { buildLastSeenDifferenceHighlightModel } from "./lib/lastSeenDifferenceHighlight";
@@ -22,15 +28,29 @@ import { buildMarkovScoreModel } from "./lib/markovScore";
 import { buildProximityModel } from "./lib/proximity";
 import type { EnrichedHistory, HighlightView, RawHistory, WorkspaceTab, WorkspaceView } from "./types";
 
+interface AuthUser {
+  email: string;
+}
+
 const rawHistory = ref<RawHistory | null>(null);
 const history = ref<EnrichedHistory>({ draws: [] });
 const isLoading = ref(true);
 const loadError = ref<string | null>(null);
+const authChecked = ref(false);
+const authEmail = ref("");
+const authError = ref("");
+const authMode = ref<"login" | "register">("login");
+const authPassword = ref("");
+const authUser = ref<AuthUser | null>(null);
+const isAuthenticating = ref(false);
 
 const isHighlightViewsOpen = ref(false);
 const isEntropyReportOpen = ref(false);
 const isFreshnessReportOpen = ref(false);
 const isProximityReportOpen = ref(false);
+const isChiSquareReportOpen = ref(false);
+const isAutocorrelationReportOpen = ref(false);
+const isCoOccurrenceReportOpen = ref(false);
 const isMarkovScoreReportOpen = ref(false);
 const isBayesianMarkovReportOpen = ref(false);
 const isScoreGraphsOpen = ref(false);
@@ -78,6 +98,9 @@ const workspaceLabels: Record<WorkspaceView, string> = {
   entropy: "Entropy Report",
   freshness: "Freshness",
   proximity: "Proximity",
+  chiSquare: "Chi-square",
+  autocorrelation: "Autocorrelation",
+  coOccurrence: "Co-occurrence",
   markovScore: "100 Markov Score",
   bayesianMarkov: "Bayesian Markov",
   scoreGraphs: "Score Graphs",
@@ -101,6 +124,9 @@ const workspaceBreadcrumbs: Record<WorkspaceView, string[]> = {
   entropy: ["Statistics", "Views", "Entropy Report"],
   freshness: ["Statistics", "Views", "Freshness Report"],
   proximity: ["Statistics", "Views", "Proximity Report"],
+  chiSquare: ["Statistics", "Views", "Chi-square Report"],
+  autocorrelation: ["Statistics", "Views", "Autocorrelation Report"],
+  coOccurrence: ["Statistics", "Views", "Co-occurrence Network"],
   markovScore: ["Statistics", "Views", "100 Markov Score"],
   bayesianMarkov: ["Statistics", "Views", "Bayesian Markov Score"],
   scoreGraphs: ["Statistics", "Graphs", "Score Timeline"],
@@ -108,6 +134,7 @@ const workspaceBreadcrumbs: Record<WorkspaceView, string[]> = {
 const appBreadcrumbs = computed(() =>
   activeWorkspaceView.value === null ? [] : workspaceBreadcrumbs[activeWorkspaceView.value],
 );
+const isAppLoading = computed(() => isLoading.value || !authChecked.value);
 
 const model = computed(() =>
   buildLastSeenHighlightModel(history.value, drawCount.value, referenceDrawOffset.value),
@@ -137,6 +164,11 @@ const lastSeenDifferenceLast50Model = computed(() =>
 );
 const freshnessModel = computed(() => buildFreshnessModel(statisticsReferenceHistory.value));
 const proximityModel = computed(() => buildProximityModel(statisticsReferenceHistory.value));
+const chiSquareModel = computed(() => buildChiSquareModel(statisticsReferenceHistory.value));
+const autocorrelationModel = computed(() =>
+  buildAutocorrelationModel(statisticsReferenceHistory.value),
+);
+const coOccurrenceModel = computed(() => buildCoOccurrenceModel(statisticsReferenceHistory.value));
 const markovScoreModel = computed(() => buildMarkovScoreModel(statisticsReferenceHistory.value));
 
 function openLastSeenHighlight(): void {
@@ -190,6 +222,18 @@ function openProximityReport(): void {
   openWorkspaceView("proximity");
 }
 
+function openChiSquareReport(): void {
+  openWorkspaceView("chiSquare");
+}
+
+function openAutocorrelationReport(): void {
+  openWorkspaceView("autocorrelation");
+}
+
+function openCoOccurrenceReport(): void {
+  openWorkspaceView("coOccurrence");
+}
+
 function openMarkovScoreReport(): void {
   openWorkspaceView("markovScore");
 }
@@ -229,12 +273,19 @@ function syncWorkspaceFlags(): void {
   isEntropyReportOpen.value = activeWorkspaceView.value === "entropy";
   isFreshnessReportOpen.value = activeWorkspaceView.value === "freshness";
   isProximityReportOpen.value = activeWorkspaceView.value === "proximity";
+  isChiSquareReportOpen.value = activeWorkspaceView.value === "chiSquare";
+  isAutocorrelationReportOpen.value = activeWorkspaceView.value === "autocorrelation";
+  isCoOccurrenceReportOpen.value = activeWorkspaceView.value === "coOccurrence";
   isMarkovScoreReportOpen.value = activeWorkspaceView.value === "markovScore";
   isBayesianMarkovReportOpen.value = activeWorkspaceView.value === "bayesianMarkov";
   isScoreGraphsOpen.value = activeWorkspaceView.value === "scoreGraphs";
 }
 
 function openWorkspaceView(view: WorkspaceView): void {
+  if (!authUser.value) {
+    return;
+  }
+
   if (!openWorkspaceViews.value.includes(view)) {
     openWorkspaceViews.value = [...openWorkspaceViews.value, view];
   }
@@ -259,9 +310,24 @@ function closeActiveWorkspaceView(): void {
     return;
   }
 
-  const remainingViews = openWorkspaceViews.value.filter((view) => view !== activeView);
+  closeWorkspaceView(activeView);
+}
+
+function closeWorkspaceView(view: WorkspaceView): void {
+  const closingIndex = openWorkspaceViews.value.indexOf(view);
+
+  if (closingIndex === -1) {
+    return;
+  }
+
+  const remainingViews = openWorkspaceViews.value.filter((openView) => openView !== view);
   openWorkspaceViews.value = remainingViews;
-  activeWorkspaceView.value = remainingViews[remainingViews.length - 1] ?? null;
+
+  if (activeWorkspaceView.value === view) {
+    activeWorkspaceView.value =
+      remainingViews[Math.min(closingIndex, remainingViews.length - 1)] ?? null;
+  }
+
   syncWorkspaceFlags();
 }
 
@@ -374,9 +440,67 @@ function showLatestStatisticsReferenceDraw(): void {
   statisticsReferenceDrawOffset.value = 0;
 }
 
+async function submitAuth(): Promise<void> {
+  if (isAuthenticating.value) {
+    return;
+  }
+
+  isAuthenticating.value = true;
+  authError.value = "";
+
+  try {
+    const credentials = {
+      email: authEmail.value,
+      password: authPassword.value,
+    };
+    const user =
+      authMode.value === "register"
+        ? await window.pylottoDesktop?.authRegister(credentials)
+        : await window.pylottoDesktop?.authLogin(credentials);
+
+    if (!user) {
+      throw new Error("Desktop authentication is unavailable.");
+    }
+
+    authUser.value = user;
+    authEmail.value = user.email;
+    authPassword.value = "";
+  } catch (error) {
+    authError.value = error instanceof Error ? error.message : "Could not sign in.";
+  } finally {
+    isAuthenticating.value = false;
+  }
+}
+
+async function logout(): Promise<void> {
+  await window.pylottoDesktop?.authLogout();
+  authUser.value = null;
+  authPassword.value = "";
+  openWorkspaceViews.value = [];
+  activeWorkspaceView.value = null;
+  syncWorkspaceFlags();
+}
+
 let unsubscribeMenuAction: (() => void) | null = null;
 
 onMounted(() => {
+  if (window.pylottoDesktop) {
+    window.pylottoDesktop
+      .authCurrentUser()
+      .then((user) => {
+        authUser.value = user;
+        authEmail.value = user?.email ?? "";
+      })
+      .catch(() => {
+        authUser.value = null;
+      })
+      .finally(() => {
+        authChecked.value = true;
+      });
+  } else {
+    authChecked.value = true;
+  }
+
   window.pylottoDesktop
     ?.loadLottoHistory()
     .then((payload) => {
@@ -448,6 +572,18 @@ onMounted(() => {
         openProximityReport();
       }
 
+      if (message.action === "openChiSquareReport") {
+        openChiSquareReport();
+      }
+
+      if (message.action === "openAutocorrelationReport") {
+        openAutocorrelationReport();
+      }
+
+      if (message.action === "openCoOccurrenceReport") {
+        openCoOccurrenceReport();
+      }
+
       if (message.action === "openMarkovScoreReport") {
         openMarkovScoreReport();
       }
@@ -469,10 +605,10 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="app-shell">
-    <header class="app-toolbar" aria-label="Application toolbar">
+    <header v-if="authUser" class="app-toolbar" aria-label="Application toolbar">
       <button
         class="app-toolbar-button"
-        :disabled="isLoading || !!loadError || totalDraws === 0"
+        :disabled="isAppLoading || !authUser || !!loadError || totalDraws === 0"
         type="button"
         aria-label="Open Draws"
         title="Open Draws"
@@ -486,7 +622,7 @@ onBeforeUnmount(() => {
       </button>
       <button
         class="app-toolbar-button"
-        :disabled="isLoading || !!loadError || totalDraws === 0"
+        :disabled="isAppLoading || !authUser || !!loadError || totalDraws === 0"
         type="button"
         aria-label="Open Possible Draw"
         title="Open Possible Draw"
@@ -500,7 +636,7 @@ onBeforeUnmount(() => {
       </button>
       <button
         class="app-toolbar-button"
-        :disabled="isLoading || !!loadError || totalDraws === 0"
+        :disabled="isAppLoading || !authUser || !!loadError || totalDraws === 0"
         type="button"
         aria-label="Open Predictive Score Grid"
         title="Open Predictive Score Grid"
@@ -514,7 +650,7 @@ onBeforeUnmount(() => {
       </button>
       <button
         class="app-toolbar-button"
-        :disabled="isLoading || !!loadError || totalDraws === 0"
+        :disabled="isAppLoading || !authUser || !!loadError || totalDraws === 0"
         type="button"
         aria-label="Open Real Draw"
         title="Open Real Draw"
@@ -539,12 +675,48 @@ onBeforeUnmount(() => {
           {{ breadcrumb }}
         </span>
       </nav>
+      <div v-if="authUser" class="user-session-pill">
+        <span>{{ authUser.email }}</span>
+        <button type="button" @click="logout">Sign out</button>
+      </div>
     </header>
 
-    <section class="hero-panel">
+    <section v-if="!authUser" class="auth-panel">
+      <form class="auth-card" @submit.prevent="submitAuth">
+        <p class="eyebrow">User Account</p>
+        <h1>{{ authMode === "register" ? "Register PyLotto" : "Sign In" }}</h1>
+        <label>
+          Email
+          <input v-model="authEmail" autocomplete="email" type="email" required>
+        </label>
+        <label>
+          Password
+          <input
+            v-model="authPassword"
+            autocomplete="current-password"
+            minlength="6"
+            type="password"
+            required
+          >
+        </label>
+        <p v-if="authError" class="auth-error">{{ authError }}</p>
+        <button class="action-button primary" :disabled="isAuthenticating" type="submit">
+          {{ isAuthenticating ? "Working..." : authMode === "register" ? "Register" : "Sign In" }}
+        </button>
+        <button
+          class="ghost-button compact-button"
+          type="button"
+          @click="authMode = authMode === 'register' ? 'login' : 'register'; authError = ''"
+        >
+          {{ authMode === "register" ? "Use existing account" : "Create account" }}
+        </button>
+      </form>
+    </section>
+
+    <section v-else class="hero-panel">
       <p class="eyebrow">Electron + Vue Port</p>
       <h1>PyLotto Statistics Workspace</h1>
-      <p v-if="isLoading" class="hero-copy">
+      <p v-if="isAppLoading" class="hero-copy">
         Loading lotto draws from the YAML file bundled with the Electron app.
       </p>
       <p v-else-if="loadError" class="hero-copy">
@@ -565,6 +737,12 @@ onBeforeUnmount(() => {
         <strong>Statistics / Views / Freshness Report</strong>
         or
         <strong>Statistics / Views / Proximity Report</strong>
+        or
+        <strong>Statistics / Views / Chi-square Report</strong>
+        or
+        <strong>Statistics / Views / Autocorrelation Report</strong>
+        or
+        <strong>Statistics / Views / Co-occurrence Network</strong>
         or
         <strong>Statistics / Views / 100 Markov Score</strong>
         or
@@ -596,6 +774,7 @@ onBeforeUnmount(() => {
       :draws="history.draws"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @switch-workspace-view="switchWorkspaceView"
     />
 
@@ -605,6 +784,7 @@ onBeforeUnmount(() => {
       :draws="history.draws"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @switch-workspace-view="switchWorkspaceView"
     />
 
@@ -613,14 +793,20 @@ onBeforeUnmount(() => {
       :active-workspace-view="activeWorkspaceView ?? 'allDraws'"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @switch-workspace-view="switchWorkspaceView"
     />
 
     <NextPossibleDrawDialog
       v-if="isNextPossibleDrawOpen && !isLoading && !loadError"
       :active-workspace-view="activeWorkspaceView ?? 'nextPossibleDrawPossible'"
+      :current-user-email="authUser?.email ?? ''"
+      :freshness-model="freshnessModel"
+      :history="statisticsReferenceHistory"
+      :proximity-model="proximityModel"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @switch-workspace-view="switchWorkspaceView"
     />
 
@@ -635,6 +821,7 @@ onBeforeUnmount(() => {
       :reference-draw-offset="referenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @first-draw="showFirstDraw"
       @latest-draw="showLatestDraw"
       @next-draw="showNextDraw"
@@ -655,6 +842,7 @@ onBeforeUnmount(() => {
       :reference-draw-offset="gapReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @first-draw="showFirstGapDraw"
       @latest-draw="showLatestGapDraw"
       @next-draw="showNextGapDraw"
@@ -675,6 +863,7 @@ onBeforeUnmount(() => {
       :reference-draw-offset="differenceReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @first-draw="showFirstDifferenceDraw"
       @latest-draw="showLatestDifferenceDraw"
       @next-draw="showNextDifferenceDraw"
@@ -693,6 +882,7 @@ onBeforeUnmount(() => {
       :reference-draw-offset="statisticsReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @first-reference-draw="showFirstStatisticsReferenceDraw"
       @latest-reference-draw="showLatestStatisticsReferenceDraw"
       @next-reference-draw="showNextStatisticsReferenceDraw"
@@ -705,9 +895,11 @@ onBeforeUnmount(() => {
       :active-workspace-view="activeWorkspaceView ?? 'entropy'"
       :history="statisticsReferenceHistory"
       :max-reference-draw-offset="maxStatisticsReferenceDrawOffset"
+      :next-actual-draw="statisticsNextActualDraw"
       :reference-draw-offset="statisticsReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @first-reference-draw="showFirstStatisticsReferenceDraw"
       @latest-reference-draw="showLatestStatisticsReferenceDraw"
       @next-reference-draw="showNextStatisticsReferenceDraw"
@@ -724,6 +916,57 @@ onBeforeUnmount(() => {
       :reference-draw-offset="statisticsReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
+      @first-reference-draw="showFirstStatisticsReferenceDraw"
+      @latest-reference-draw="showLatestStatisticsReferenceDraw"
+      @next-reference-draw="showNextStatisticsReferenceDraw"
+      @previous-reference-draw="showPreviousStatisticsReferenceDraw"
+      @switch-workspace-view="switchWorkspaceView"
+    />
+
+    <ChiSquareReportDialog
+      v-if="isChiSquareReportOpen && !isLoading && !loadError"
+      :active-workspace-view="activeWorkspaceView ?? 'chiSquare'"
+      :max-reference-draw-offset="maxStatisticsReferenceDrawOffset"
+      :model="chiSquareModel"
+      :next-actual-draw="statisticsNextActualDraw"
+      :reference-draw-offset="statisticsReferenceDrawOffset"
+      :workspace-tabs="workspaceTabs"
+      @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
+      @first-reference-draw="showFirstStatisticsReferenceDraw"
+      @latest-reference-draw="showLatestStatisticsReferenceDraw"
+      @next-reference-draw="showNextStatisticsReferenceDraw"
+      @previous-reference-draw="showPreviousStatisticsReferenceDraw"
+      @switch-workspace-view="switchWorkspaceView"
+    />
+
+    <AutocorrelationReportDialog
+      v-if="isAutocorrelationReportOpen && !isLoading && !loadError"
+      :active-workspace-view="activeWorkspaceView ?? 'autocorrelation'"
+      :max-reference-draw-offset="maxStatisticsReferenceDrawOffset"
+      :model="autocorrelationModel"
+      :reference-draw-offset="statisticsReferenceDrawOffset"
+      :workspace-tabs="workspaceTabs"
+      @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
+      @first-reference-draw="showFirstStatisticsReferenceDraw"
+      @latest-reference-draw="showLatestStatisticsReferenceDraw"
+      @next-reference-draw="showNextStatisticsReferenceDraw"
+      @previous-reference-draw="showPreviousStatisticsReferenceDraw"
+      @switch-workspace-view="switchWorkspaceView"
+    />
+
+    <CoOccurrenceReportDialog
+      v-if="isCoOccurrenceReportOpen && !isLoading && !loadError"
+      :active-workspace-view="activeWorkspaceView ?? 'coOccurrence'"
+      :max-reference-draw-offset="maxStatisticsReferenceDrawOffset"
+      :model="coOccurrenceModel"
+      :next-actual-draw="statisticsNextActualDraw"
+      :reference-draw-offset="statisticsReferenceDrawOffset"
+      :workspace-tabs="workspaceTabs"
+      @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @first-reference-draw="showFirstStatisticsReferenceDraw"
       @latest-reference-draw="showLatestStatisticsReferenceDraw"
       @next-reference-draw="showNextStatisticsReferenceDraw"
@@ -736,9 +979,11 @@ onBeforeUnmount(() => {
       :active-workspace-view="activeWorkspaceView ?? 'markovScore'"
       :max-reference-draw-offset="maxStatisticsReferenceDrawOffset"
       :model="markovScoreModel"
+      :next-actual-draw="statisticsNextActualDraw"
       :reference-draw-offset="statisticsReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @first-reference-draw="showFirstStatisticsReferenceDraw"
       @latest-reference-draw="showLatestStatisticsReferenceDraw"
       @next-reference-draw="showNextStatisticsReferenceDraw"
@@ -755,6 +1000,7 @@ onBeforeUnmount(() => {
       :reference-draw-offset="statisticsReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @first-reference-draw="showFirstStatisticsReferenceDraw"
       @latest-reference-draw="showLatestStatisticsReferenceDraw"
       @next-reference-draw="showNextStatisticsReferenceDraw"
@@ -768,6 +1014,7 @@ onBeforeUnmount(() => {
       :history="history"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
       @switch-workspace-view="switchWorkspaceView"
     />
   </main>

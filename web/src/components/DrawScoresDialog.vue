@@ -26,6 +26,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
+  closeWorkspaceView: [value: WorkspaceView];
   switchWorkspaceView: [value: WorkspaceView];
 }>();
 
@@ -112,6 +113,7 @@ function formatPredictionCoverCount(coverCount: number | null): string {
       <WorkspaceTabs
         :active-workspace-view="activeWorkspaceView"
         :workspace-tabs="workspaceTabs"
+        @close-workspace-view="emit('closeWorkspaceView', $event)"
         @switch-workspace-view="emit('switchWorkspaceView', $event)"
       />
 

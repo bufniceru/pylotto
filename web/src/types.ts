@@ -39,6 +39,9 @@ export type WorkspaceView =
   | "entropy"
   | "freshness"
   | "proximity"
+  | "chiSquare"
+  | "autocorrelation"
+  | "coOccurrence"
   | "markovScore"
   | "bayesianMarkov"
   | "scoreGraphs";
@@ -170,6 +173,56 @@ export interface FreshnessDrawProfile {
   }[];
 }
 
+export interface FreshnessDoubletSummary {
+  pair: string;
+  numbers: [number, number];
+  gap: number | null;
+  bucketId: string;
+  label: string;
+  hitRate: number;
+  rank: number;
+}
+
+export interface FreshnessDoubletBucketSummary {
+  bucketId: string;
+  label: string;
+  drawnCount: number;
+  exposureCount: number;
+  hitRate: number;
+  drawShare: number;
+}
+
+export interface FreshnessDoubletProfile {
+  date: string;
+  signature: string;
+  doublets: FreshnessDoubletSummary[];
+}
+
+export interface FreshnessTripletSummary {
+  triplet: string;
+  numbers: [number, number, number];
+  gap: number | null;
+  bucketId: string;
+  label: string;
+  hitRate: number;
+  rank: number;
+}
+
+export interface FreshnessTripletBucketSummary {
+  bucketId: string;
+  label: string;
+  drawnCount: number;
+  exposureCount: number;
+  hitRate: number;
+  drawShare: number;
+}
+
+export interface FreshnessTripletProfile {
+  date: string;
+  signature: string;
+  triplets: FreshnessTripletSummary[];
+}
+
 export interface FreshnessModel {
   buckets: FreshnessBucket[];
   drawCount: number;
@@ -178,6 +231,12 @@ export interface FreshnessModel {
   bucketSummaries: FreshnessBucketSummary[];
   predictions: FreshnessPrediction[];
   latestProfile: FreshnessDrawProfile | null;
+  doubletBucketSummaries: FreshnessDoubletBucketSummary[];
+  doubletPredictions: FreshnessDoubletSummary[];
+  latestDoubletProfile: FreshnessDoubletProfile | null;
+  tripletBucketSummaries: FreshnessTripletBucketSummary[];
+  tripletPredictions: FreshnessTripletSummary[];
+  latestTripletProfile: FreshnessTripletProfile | null;
 }
 
 export interface ProximityBucket {
@@ -233,6 +292,170 @@ export interface ProximityModel {
   bucketSummaries: ProximityBucketSummary[];
   predictions: ProximityPrediction[];
   latestProfile: ProximityDrawProfile | null;
+}
+
+export interface ChiSquareBand {
+  id: string;
+  label: string;
+  description: string;
+  color: string;
+}
+
+export interface ChiSquareNumberSummary {
+  number: number;
+  observed: number;
+  expected: number;
+  difference: number;
+  residual: number;
+  contribution: number;
+  share: number;
+  rank: number;
+  bandId: string;
+  label: string;
+}
+
+export interface ChiSquareModel {
+  bands: ChiSquareBand[];
+  drawCount: number;
+  totalObserved: number;
+  expectedPerNumber: number;
+  statistic: number;
+  degreesOfFreedom: number;
+  pValue: number;
+  critical95: number;
+  critical99: number;
+  maxContribution: number;
+  interpretation: string;
+  numberSummaries: ChiSquareNumberSummary[];
+  latestProfile: {
+    date: string | null;
+    signature: string;
+    numbers: ChiSquareNumberSummary[];
+  };
+}
+
+export interface AutocorrelationBand {
+  id: string;
+  label: string;
+  description: string;
+  color: string;
+}
+
+export interface AutocorrelationLagSummary {
+  lag: number;
+  pairCount: number;
+  averageOverlap: number;
+  expectedOverlap: number;
+  overlapDelta: number;
+  overlapRate: number;
+  averageDoublets: number;
+  expectedDoublets: number;
+  doubletDelta: number;
+  averageTriplets: number;
+  expectedTriplets: number;
+  tripletDelta: number;
+  numberPresenceCorrelation: number;
+  sumCorrelation: number;
+  oddCountCorrelation: number;
+  lowCountCorrelation: number;
+  score: number;
+  bandId: string;
+  label: string;
+}
+
+export interface AutocorrelationNumberSummary {
+  number: number;
+  appearances: number;
+  strongestLag: number;
+  strongestCorrelation: number;
+  score: number;
+  bandId: string;
+  label: string;
+  rank: number;
+}
+
+export interface AutocorrelationModel {
+  bands: AutocorrelationBand[];
+  drawCount: number;
+  maxLag: number;
+  expectedOverlap: number;
+  expectedDoublets: number;
+  expectedTriplets: number;
+  lagSummaries: AutocorrelationLagSummary[];
+  numberSummaries: AutocorrelationNumberSummary[];
+  strongestLag: AutocorrelationLagSummary | null;
+  strongestPositiveLag: AutocorrelationLagSummary | null;
+  strongestNegativeLag: AutocorrelationLagSummary | null;
+  latestProfile: {
+    date: string | null;
+    signature: string;
+    numbers: AutocorrelationNumberSummary[];
+  };
+  interpretation: string;
+}
+
+export interface CoOccurrenceBand {
+  id: string;
+  label: string;
+  description: string;
+  color: string;
+}
+
+export interface CoOccurrenceEdge {
+  pair: string;
+  numbers: [number, number];
+  count: number;
+  expected: number;
+  lift: number;
+  residual: number;
+  share: number;
+  rank: number;
+  bandId: string;
+  label: string;
+}
+
+export interface CoOccurrenceNode {
+  number: number;
+  appearances: number;
+  weightedDegree: number;
+  averagePartnerCount: number;
+  strongestPartner: number | null;
+  strongestPartnerCount: number;
+  strongestPartnerLift: number;
+  rank: number;
+}
+
+export interface CoOccurrencePrediction {
+  number: number;
+  rank: number;
+  score: number;
+  averageLift: number;
+  totalCount: number;
+  strongestPartner: number | null;
+  strongestPartnerCount: number;
+  strongestPartnerLift: number;
+  bandId: string;
+  label: string;
+}
+
+export interface CoOccurrenceModel {
+  bands: CoOccurrenceBand[];
+  drawCount: number;
+  totalPairEvents: number;
+  expectedPairCount: number;
+  pairUniverseSize: number;
+  maxEdgeCount: number;
+  maxWeightedDegree: number;
+  edges: CoOccurrenceEdge[];
+  nodes: CoOccurrenceNode[];
+  predictions: CoOccurrencePrediction[];
+  networkEdges: CoOccurrenceEdge[];
+  latestProfile: {
+    date: string | null;
+    signature: string;
+    edges: CoOccurrenceEdge[];
+  };
+  interpretation: string;
 }
 
 export interface MarkovScoreBand {

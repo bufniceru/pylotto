@@ -18,6 +18,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
+  closeWorkspaceView: [value: WorkspaceView];
   updateDrawCount: [value: number];
   firstDraw: [];
   latestDraw: [];
@@ -186,6 +187,7 @@ onBeforeUnmount(() => {
       <WorkspaceTabs
         :active-workspace-view="activeWorkspaceView"
         :workspace-tabs="workspaceTabs"
+        @close-workspace-view="emit('closeWorkspaceView', $event)"
         @switch-workspace-view="emit('switchWorkspaceView', $event)"
       />
 

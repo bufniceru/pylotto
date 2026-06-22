@@ -1,6 +1,10 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("pylottoDesktop", {
+  authCurrentUser: () => ipcRenderer.invoke("auth-current-user"),
+  authLogin: (payload) => ipcRenderer.invoke("auth-login", payload),
+  authLogout: () => ipcRenderer.invoke("auth-logout"),
+  authRegister: (payload) => ipcRenderer.invoke("auth-register", payload),
   loadLottoHistory: () => ipcRenderer.invoke("load-lotto-history"),
   loadNextPossibleDrawState: () => ipcRenderer.invoke("load-next-possible-draw-state"),
   saveNextPossibleDrawState: (state) =>

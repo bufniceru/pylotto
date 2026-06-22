@@ -25,6 +25,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
+  closeWorkspaceView: [value: WorkspaceView];
   switchWorkspaceView: [value: WorkspaceView];
 }>();
 
@@ -193,6 +194,7 @@ function formatPercent(value: number): string {
       <WorkspaceTabs
         :active-workspace-view="activeWorkspaceView"
         :workspace-tabs="workspaceTabs"
+        @close-workspace-view="emit('closeWorkspaceView', $event)"
         @switch-workspace-view="emit('switchWorkspaceView', $event)"
       />
 

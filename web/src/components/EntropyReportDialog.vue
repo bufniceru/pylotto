@@ -3,18 +3,20 @@ import { computed } from "vue";
 import { buildEntropyModel } from "../lib/structuralEntropy";
 import StatisticsReferenceNavigation from "./StatisticsReferenceNavigation.vue";
 import WorkspaceTabs from "./WorkspaceTabs.vue";
-import type { EnrichedHistory, WorkspaceTab, WorkspaceView } from "../types";
+import type { EnrichedDraw, EnrichedHistory, WorkspaceTab, WorkspaceView } from "../types";
 
 const props = defineProps<{
   activeWorkspaceView: WorkspaceView;
   history: EnrichedHistory;
   maxReferenceDrawOffset: number;
+  nextActualDraw: EnrichedDraw | null;
   referenceDrawOffset: number;
   workspaceTabs: WorkspaceTab[];
 }>();
 
 const emit = defineEmits<{
   close: [];
+  closeWorkspaceView: [value: WorkspaceView];
   firstReferenceDraw: [];
   latestReferenceDraw: [];
   nextReferenceDraw: [];
@@ -28,6 +30,9 @@ const maxSituationCount = computed(() =>
 );
 const maxBucketCount = computed(() =>
   Math.max(...model.value.bucketSummaries.map((summary) => summary.count), 1),
+);
+const hitNumbers = computed(
+  () => new Set(props.nextActualDraw?.numbers.map((number) => number.value) ?? []),
 );
 
 function percent(value: number): string {
@@ -53,6 +58,7 @@ function bucketColor(bucketId: string): string {
       <WorkspaceTabs
         :active-workspace-view="activeWorkspaceView"
         :workspace-tabs="workspaceTabs"
+        @close-workspace-view="emit('closeWorkspaceView', $event)"
         @switch-workspace-view="emit('switchWorkspaceView', $event)"
       />
 
@@ -204,6 +210,7 @@ function bucketColor(bucketId: string): string {
                 v-for="prediction in model.predictions"
                 :key="prediction.number"
                 class="freshness-prediction-cell"
+                :class="{ 'prediction-hit': hitNumbers.has(prediction.number) }"
                 :style="{ '--bucket-color': bucketColor(prediction.bucketId) }"
                 :title="`${prediction.label} | score ${score(prediction.score)} | avg entropy ${score(prediction.entropyPercent)} | high entropy ${percent(prediction.highEntropyShare)} | hits ${prediction.appearances} | gap ${prediction.currentGap}`"
               >
@@ -217,6 +224,7 @@ function bucketColor(bucketId: string): string {
                 <span>No.</span>
                 <span>Score</span>
                 <span>Avg %</span>
+                <span>Hits</span>
                 <span>Gap</span>
               </div>
               <div
@@ -225,9 +233,17 @@ function bucketColor(bucketId: string): string {
                 class="freshness-row"
               >
                 <span>{{ prediction.rank }}</span>
-                <span>{{ prediction.number }}</span>
+                <span>
+                  <b
+                    class="prediction-number-marker"
+                    :class="{ 'prediction-hit': hitNumbers.has(prediction.number) }"
+                  >
+                    {{ prediction.number }}
+                  </b>
+                </span>
                 <span>{{ score(prediction.score) }}</span>
                 <span>{{ score(prediction.entropyPercent) }}</span>
+                <span>{{ prediction.appearances }}</span>
                 <span>{{ prediction.currentGap }}</span>
               </div>
             </div>

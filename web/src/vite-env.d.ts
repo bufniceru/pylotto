@@ -1,6 +1,10 @@
 /// <reference types="vite/client" />
 
 interface PylottoDesktopApi {
+  authCurrentUser: () => Promise<AuthUser | null>;
+  authLogin: (payload: AuthCredentials) => Promise<AuthUser>;
+  authLogout: () => Promise<null>;
+  authRegister: (payload: AuthCredentials) => Promise<AuthUser>;
   loadLottoHistory: () => Promise<{
     totalDraws: number;
     firstDraw: string;
@@ -26,7 +30,26 @@ interface PylottoDesktopApi {
   ) => () => void;
 }
 
+interface AuthCredentials {
+  email: string;
+  password: string;
+}
+
+interface AuthUser {
+  email: string;
+}
+
 interface NextPossibleDrawState {
+  activePlanId: string;
+  plans: PossibleDrawPlan[];
+  selectedNumbers?: number[];
+  droppedNumbers?: number[];
+  uncertainNumbers?: number[];
+}
+
+interface PossibleDrawPlan {
+  id: string;
+  name: string;
   selectedNumbers: number[];
   droppedNumbers: number[];
   uncertainNumbers: number[];
@@ -39,6 +62,7 @@ interface RealDrawSaveResult {
   matchCount: number;
   totalDraws: number;
   yamlPath: string;
+  mirroredYamlPaths?: string[];
 }
 
 declare global {

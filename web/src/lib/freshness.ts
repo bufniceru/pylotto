@@ -2,10 +2,14 @@ import type {
   EnrichedHistory,
   FreshnessBucket,
   FreshnessBucketSummary,
+  FreshnessDoubletProfile,
+  FreshnessDoubletSummary,
   FreshnessDrawProfile,
   FreshnessModel,
   FreshnessPrediction,
   FreshnessSituation,
+  FreshnessTripletProfile,
+  FreshnessTripletSummary,
 } from "../types";
 
 export const freshnessBuckets: FreshnessBucket[] = [
@@ -114,6 +118,86 @@ function emptyBucketMap(): Map<string, number> {
   return new Map(freshnessBuckets.map((bucket) => [bucket.id, 0]));
 }
 
+function pairKey(left: number, right: number): string {
+  return `${Math.min(left, right)}-${Math.max(left, right)}`;
+}
+
+function pairNumbers(key: string): [number, number] {
+  const [left, right] = key.split("-").map((value) => Number(value));
+
+  return [left, right];
+}
+
+function tripletKey(first: number, second: number, third: number): string {
+  return [first, second, third].sort((left, right) => left - right).join("-");
+}
+
+function tripletNumbers(key: string): [number, number, number] {
+  const [first, second, third] = key.split("-").map((value) => Number(value));
+
+  return [first, second, third];
+}
+
+function allPairKeys(): string[] {
+  const pairs: string[] = [];
+
+  for (let left = 1; left <= 48; left += 1) {
+    for (let right = left + 1; right <= 49; right += 1) {
+      pairs.push(pairKey(left, right));
+    }
+  }
+
+  return pairs;
+}
+
+function allTripletKeys(): string[] {
+  const triplets: string[] = [];
+
+  for (let first = 1; first <= 47; first += 1) {
+    for (let second = first + 1; second <= 48; second += 1) {
+      for (let third = second + 1; third <= 49; third += 1) {
+        triplets.push(tripletKey(first, second, third));
+      }
+    }
+  }
+
+  return triplets;
+}
+
+function drawPairKeys(values: number[]): string[] {
+  const sortedValues = [...values].sort((left, right) => left - right);
+  const pairs: string[] = [];
+
+  for (let leftIndex = 0; leftIndex < sortedValues.length - 1; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < sortedValues.length; rightIndex += 1) {
+      pairs.push(pairKey(sortedValues[leftIndex], sortedValues[rightIndex]));
+    }
+  }
+
+  return pairs;
+}
+
+function drawTripletKeys(values: number[]): string[] {
+  const sortedValues = [...values].sort((left, right) => left - right);
+  const triplets: string[] = [];
+
+  for (let firstIndex = 0; firstIndex < sortedValues.length - 2; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < sortedValues.length - 1; secondIndex += 1) {
+      for (let thirdIndex = secondIndex + 1; thirdIndex < sortedValues.length; thirdIndex += 1) {
+        triplets.push(
+          tripletKey(
+            sortedValues[firstIndex],
+            sortedValues[secondIndex],
+            sortedValues[thirdIndex],
+          ),
+        );
+      }
+    }
+  }
+
+  return triplets;
+}
+
 function countNumbersNeededToCoverDraw(
   drawnValues: number[],
   rankedNumbers: number[],
@@ -130,17 +214,39 @@ function countNumbersNeededToCoverDraw(
 
 export function buildFreshnessModel(history: EnrichedHistory): FreshnessModel {
   const lastSeen = new Map<number, number | null>();
+  const pairKeys = allPairKeys();
+  const tripletKeys = allTripletKeys();
+  const pairLastSeen = new Map<string, number | null>();
+  const tripletLastSeen = new Map<string, number | null>();
   const situationCounts = new Map<string, FreshnessSituation>();
   const drawnByBucket = emptyBucketMap();
   const exposureByBucket = emptyBucketMap();
+  const drawnDoubletsByBucket = emptyBucketMap();
+  const exposureDoubletsByBucket = emptyBucketMap();
+  const drawnTripletsByBucket = emptyBucketMap();
+  const exposureTripletsByBucket = emptyBucketMap();
   let latestProfile: FreshnessDrawProfile | null = null;
+  let latestDoubletProfile: FreshnessDoubletProfile | null = null;
+  let latestTripletProfile: FreshnessTripletProfile | null = null;
 
   for (let number = 1; number <= 49; number += 1) {
     lastSeen.set(number, null);
   }
 
+  for (const key of pairKeys) {
+    pairLastSeen.set(key, null);
+  }
+
+  for (const key of tripletKeys) {
+    tripletLastSeen.set(key, null);
+  }
+
   history.draws.forEach((draw, drawIndex) => {
     const drawnValues = new Set(draw.numbers.map((number) => number.value));
+    const currentPairKeys = drawPairKeys(draw.numbers.map((number) => number.value));
+    const currentTripletKeys = drawTripletKeys(draw.numbers.map((number) => number.value));
+    const drawnPairs = new Set(currentPairKeys);
+    const drawnTriplets = new Set(currentTripletKeys);
 
     for (let number = 1; number <= 49; number += 1) {
       const previousIndex = lastSeen.get(number) ?? null;
@@ -151,6 +257,42 @@ export function buildFreshnessModel(history: EnrichedHistory): FreshnessModel {
 
       if (drawnValues.has(number)) {
         drawnByBucket.set(bucket.id, (drawnByBucket.get(bucket.id) ?? 0) + 1);
+      }
+    }
+
+    for (const key of pairKeys) {
+      const previousIndex = pairLastSeen.get(key) ?? null;
+      const gap = previousIndex === null ? null : drawIndex - previousIndex - 1;
+      const bucket = bucketForGap(gap);
+
+      exposureDoubletsByBucket.set(
+        bucket.id,
+        (exposureDoubletsByBucket.get(bucket.id) ?? 0) + 1,
+      );
+
+      if (drawnPairs.has(key)) {
+        drawnDoubletsByBucket.set(
+          bucket.id,
+          (drawnDoubletsByBucket.get(bucket.id) ?? 0) + 1,
+        );
+      }
+    }
+
+    for (const key of tripletKeys) {
+      const previousIndex = tripletLastSeen.get(key) ?? null;
+      const gap = previousIndex === null ? null : drawIndex - previousIndex - 1;
+      const bucket = bucketForGap(gap);
+
+      exposureTripletsByBucket.set(
+        bucket.id,
+        (exposureTripletsByBucket.get(bucket.id) ?? 0) + 1,
+      );
+
+      if (drawnTriplets.has(key)) {
+        drawnTripletsByBucket.set(
+          bucket.id,
+          (drawnTripletsByBucket.get(bucket.id) ?? 0) + 1,
+        );
       }
     }
 
@@ -197,8 +339,72 @@ export function buildFreshnessModel(history: EnrichedHistory): FreshnessModel {
       numbers,
     };
 
+    const doublets = currentPairKeys
+      .map((key) => {
+        const previousIndex = pairLastSeen.get(key) ?? null;
+        const gap = previousIndex === null ? null : drawIndex - previousIndex - 1;
+        const bucket = bucketForGap(gap);
+
+        return {
+          pair: key,
+          numbers: pairNumbers(key),
+          gap,
+          bucketId: bucket.id,
+          label: bucket.label,
+          hitRate: 0,
+          rank: 0,
+        };
+      })
+      .sort(
+        (left, right) =>
+          (bucketOrder.get(left.bucketId) ?? 0) - (bucketOrder.get(right.bucketId) ?? 0) ||
+          left.pair.localeCompare(right.pair),
+      );
+
+    latestDoubletProfile = {
+      date: draw.date,
+      signature: signatureForLabels(doublets.map((doublet) => doublet.label)),
+      doublets,
+    };
+
+    const triplets = currentTripletKeys
+      .map((key) => {
+        const previousIndex = tripletLastSeen.get(key) ?? null;
+        const gap = previousIndex === null ? null : drawIndex - previousIndex - 1;
+        const bucket = bucketForGap(gap);
+
+        return {
+          triplet: key,
+          numbers: tripletNumbers(key),
+          gap,
+          bucketId: bucket.id,
+          label: bucket.label,
+          hitRate: 0,
+          rank: 0,
+        };
+      })
+      .sort(
+        (left, right) =>
+          (bucketOrder.get(left.bucketId) ?? 0) - (bucketOrder.get(right.bucketId) ?? 0) ||
+          left.triplet.localeCompare(right.triplet),
+      );
+
+    latestTripletProfile = {
+      date: draw.date,
+      signature: signatureForLabels(triplets.map((triplet) => triplet.label)),
+      triplets,
+    };
+
     for (const number of draw.numbers) {
       lastSeen.set(number.value, drawIndex);
+    }
+
+    for (const key of currentPairKeys) {
+      pairLastSeen.set(key, drawIndex);
+    }
+
+    for (const key of currentTripletKeys) {
+      tripletLastSeen.set(key, drawIndex);
     }
   });
 
@@ -218,6 +424,38 @@ export function buildFreshnessModel(history: EnrichedHistory): FreshnessModel {
   });
   const hitRateByBucket = new Map(
     bucketSummaries.map((summary) => [summary.bucketId, summary.hitRate]),
+  );
+  const doubletBucketSummaries = freshnessBuckets.map((bucket) => {
+    const drawnCount = drawnDoubletsByBucket.get(bucket.id) ?? 0;
+    const exposureCount = exposureDoubletsByBucket.get(bucket.id) ?? 0;
+
+    return {
+      bucketId: bucket.id,
+      label: bucket.label,
+      drawnCount,
+      exposureCount,
+      hitRate: exposureCount === 0 ? 0 : drawnCount / exposureCount,
+      drawShare: drawCount === 0 ? 0 : drawnCount / (drawCount * 15),
+    };
+  });
+  const doubletHitRateByBucket = new Map(
+    doubletBucketSummaries.map((summary) => [summary.bucketId, summary.hitRate]),
+  );
+  const tripletBucketSummaries = freshnessBuckets.map((bucket) => {
+    const drawnCount = drawnTripletsByBucket.get(bucket.id) ?? 0;
+    const exposureCount = exposureTripletsByBucket.get(bucket.id) ?? 0;
+
+    return {
+      bucketId: bucket.id,
+      label: bucket.label,
+      drawnCount,
+      exposureCount,
+      hitRate: exposureCount === 0 ? 0 : drawnCount / exposureCount,
+      drawShare: drawCount === 0 ? 0 : drawnCount / (drawCount * 20),
+    };
+  });
+  const tripletHitRateByBucket = new Map(
+    tripletBucketSummaries.map((summary) => [summary.bucketId, summary.hitRate]),
   );
   const predictions: FreshnessPrediction[] = Array.from({ length: 49 }, (_value, index) => {
     const number = index + 1;
@@ -244,6 +482,58 @@ export function buildFreshnessModel(history: EnrichedHistory): FreshnessModel {
       ...prediction,
       rank: index + 1,
     }));
+  const doubletPredictions: FreshnessDoubletSummary[] = pairKeys
+    .map((key) => {
+      const previousIndex = pairLastSeen.get(key) ?? null;
+      const currentGap = previousIndex === null ? null : drawCount - previousIndex - 1;
+      const bucket = bucketForGap(currentGap);
+
+      return {
+        pair: key,
+        numbers: pairNumbers(key),
+        gap: currentGap,
+        bucketId: bucket.id,
+        label: bucket.label,
+        hitRate: doubletHitRateByBucket.get(bucket.id) ?? 0,
+        rank: 0,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.hitRate - left.hitRate ||
+        (right.gap ?? -1) - (left.gap ?? -1) ||
+        left.pair.localeCompare(right.pair),
+    )
+    .map((prediction, index) => ({
+      ...prediction,
+      rank: index + 1,
+    }));
+  const tripletPredictions: FreshnessTripletSummary[] = tripletKeys
+    .map((key) => {
+      const previousIndex = tripletLastSeen.get(key) ?? null;
+      const currentGap = previousIndex === null ? null : drawCount - previousIndex - 1;
+      const bucket = bucketForGap(currentGap);
+
+      return {
+        triplet: key,
+        numbers: tripletNumbers(key),
+        gap: currentGap,
+        bucketId: bucket.id,
+        label: bucket.label,
+        hitRate: tripletHitRateByBucket.get(bucket.id) ?? 0,
+        rank: 0,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.hitRate - left.hitRate ||
+        (right.gap ?? -1) - (left.gap ?? -1) ||
+        left.triplet.localeCompare(right.triplet),
+    )
+    .map((prediction, index) => ({
+      ...prediction,
+      rank: index + 1,
+    }));
   const situations = [...situationCounts.values()]
     .map((situation) => ({
       ...situation,
@@ -264,6 +554,12 @@ export function buildFreshnessModel(history: EnrichedHistory): FreshnessModel {
     bucketSummaries,
     predictions,
     latestProfile,
+    doubletBucketSummaries,
+    doubletPredictions,
+    latestDoubletProfile,
+    tripletBucketSummaries,
+    tripletPredictions,
+    latestTripletProfile,
   };
 }
 

@@ -14,6 +14,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
+  closeWorkspaceView: [value: WorkspaceView];
   switchWorkspaceView: [value: WorkspaceView];
 }>();
 
@@ -55,6 +56,7 @@ onMounted(() => {
       <WorkspaceTabs
         :active-workspace-view="props.activeWorkspaceView"
         :workspace-tabs="props.workspaceTabs"
+        @close-workspace-view="emit('closeWorkspaceView', $event)"
         @switch-workspace-view="emit('switchWorkspaceView', $event)"
       />
 
