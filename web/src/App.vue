@@ -13,9 +13,11 @@ import LastSeenDifferenceHighlightDialog from "./components/LastSeenDifferenceHi
 import LastSeenGapHighlightDialog from "./components/LastSeenGapHighlightDialog.vue";
 import LastSeenHighlightDialog from "./components/LastSeenHighlightDialog.vue";
 import MarkovScoreReportDialog from "./components/MarkovScoreReportDialog.vue";
+import MixedPredictionReportDialog from "./components/MixedPredictionReportDialog.vue";
 import NextPossibleDrawDialog from "./components/NextPossibleDrawDialog.vue";
 import ProximityReportDialog from "./components/ProximityReportDialog.vue";
 import ScoreGraphsDialog from "./components/ScoreGraphsDialog.vue";
+import SettingsDialog from "./components/SettingsDialog.vue";
 import { buildAutocorrelationModel } from "./lib/autocorrelation";
 import { buildChiSquareModel } from "./lib/chiSquare";
 import { buildCoOccurrenceModel } from "./lib/coOccurrence";
@@ -26,7 +28,14 @@ import { buildLastSeenGapHighlightModel } from "./lib/lastSeenGapHighlight";
 import { buildLastSeenHighlightModel } from "./lib/lastSeenHighlight";
 import { buildMarkovScoreModel } from "./lib/markovScore";
 import { buildProximityModel } from "./lib/proximity";
-import type { EnrichedHistory, HighlightView, RawHistory, WorkspaceTab, WorkspaceView } from "./types";
+import type {
+  AppSettings,
+  EnrichedHistory,
+  HighlightView,
+  RawHistory,
+  WorkspaceTab,
+  WorkspaceView,
+} from "./types";
 
 interface AuthUser {
   email: string;
@@ -43,6 +52,8 @@ const authMode = ref<"login" | "register">("login");
 const authPassword = ref("");
 const authUser = ref<AuthUser | null>(null);
 const isAuthenticating = ref(false);
+const appSettings = ref<AppSettings>({ implementLawOfLargeNumbers: false });
+const isSettingsOpen = ref(false);
 
 const isHighlightViewsOpen = ref(false);
 const isEntropyReportOpen = ref(false);
@@ -53,6 +64,7 @@ const isAutocorrelationReportOpen = ref(false);
 const isCoOccurrenceReportOpen = ref(false);
 const isMarkovScoreReportOpen = ref(false);
 const isBayesianMarkovReportOpen = ref(false);
+const isMixedPredictionReportOpen = ref(false);
 const isScoreGraphsOpen = ref(false);
 const activeHighlightView = ref<HighlightView>("number");
 const isDrawsOpen = ref(false);
@@ -103,6 +115,7 @@ const workspaceLabels: Record<WorkspaceView, string> = {
   coOccurrence: "Co-occurrence",
   markovScore: "100 Markov Score",
   bayesianMarkov: "Bayesian Markov",
+  mixedPrediction: "Mixed Prediction",
   scoreGraphs: "Score Graphs",
 };
 const workspaceTabs = computed<WorkspaceTab[]>(() =>
@@ -129,6 +142,7 @@ const workspaceBreadcrumbs: Record<WorkspaceView, string[]> = {
   coOccurrence: ["Statistics", "Views", "Co-occurrence Network"],
   markovScore: ["Statistics", "Views", "100 Markov Score"],
   bayesianMarkov: ["Statistics", "Views", "Bayesian Markov Score"],
+  mixedPrediction: ["Statistics", "Views", "Mixed Prediction"],
   scoreGraphs: ["Statistics", "Graphs", "Score Timeline"],
 };
 const appBreadcrumbs = computed(() =>
@@ -242,8 +256,42 @@ function openBayesianMarkovReport(): void {
   openWorkspaceView("bayesianMarkov");
 }
 
+function openMixedPredictionReport(): void {
+  openWorkspaceView("mixedPrediction");
+}
+
 function openScoreGraphs(): void {
   openWorkspaceView("scoreGraphs");
+}
+
+function openSettings(): void {
+  if (!authUser.value) {
+    return;
+  }
+
+  isSettingsOpen.value = true;
+}
+
+function closeSettings(): void {
+  isSettingsOpen.value = false;
+}
+
+async function loadSettings(): Promise<void> {
+  try {
+    const storedSettings = await window.pylottoDesktop?.loadSettings();
+
+    if (storedSettings) {
+      appSettings.value = storedSettings;
+    }
+  } catch {
+    appSettings.value = { implementLawOfLargeNumbers: false };
+  }
+}
+
+async function saveSettings(settings: AppSettings): Promise<void> {
+  const savedSettings = await window.pylottoDesktop?.saveSettings(settings);
+  appSettings.value = savedSettings ?? settings;
+  closeSettings();
 }
 
 function syncWorkspaceFlags(): void {
@@ -278,6 +326,7 @@ function syncWorkspaceFlags(): void {
   isCoOccurrenceReportOpen.value = activeWorkspaceView.value === "coOccurrence";
   isMarkovScoreReportOpen.value = activeWorkspaceView.value === "markovScore";
   isBayesianMarkovReportOpen.value = activeWorkspaceView.value === "bayesianMarkov";
+  isMixedPredictionReportOpen.value = activeWorkspaceView.value === "mixedPrediction";
   isScoreGraphsOpen.value = activeWorkspaceView.value === "scoreGraphs";
 }
 
@@ -465,6 +514,7 @@ async function submitAuth(): Promise<void> {
     authUser.value = user;
     authEmail.value = user.email;
     authPassword.value = "";
+    await loadSettings();
   } catch (error) {
     authError.value = error instanceof Error ? error.message : "Could not sign in.";
   } finally {
@@ -476,6 +526,8 @@ async function logout(): Promise<void> {
   await window.pylottoDesktop?.authLogout();
   authUser.value = null;
   authPassword.value = "";
+  appSettings.value = { implementLawOfLargeNumbers: false };
+  closeSettings();
   openWorkspaceViews.value = [];
   activeWorkspaceView.value = null;
   syncWorkspaceFlags();
@@ -490,6 +542,9 @@ onMounted(() => {
       .then((user) => {
         authUser.value = user;
         authEmail.value = user?.email ?? "";
+        if (user) {
+          void loadSettings();
+        }
       })
       .catch(() => {
         authUser.value = null;
@@ -592,8 +647,16 @@ onMounted(() => {
         openBayesianMarkovReport();
       }
 
+      if (message.action === "openMixedPredictionReport") {
+        openMixedPredictionReport();
+      }
+
       if (message.action === "openScoreGraphs") {
         openScoreGraphs();
+      }
+
+      if (message.action === "openSettings") {
+        openSettings();
       }
     }) ?? null;
 });
@@ -659,6 +722,20 @@ onBeforeUnmount(() => {
         <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
           <path
             d="M7 2.75h1.75V5h6.5V2.75H17V5h2.5A1.5 1.5 0 0 1 21 6.5v12A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5v-12A1.5 1.5 0 0 1 4.5 5H7V2.75ZM4.75 9v9.25h14.5V9H4.75Zm2.5 2.25h2v2h-2v-2Zm3.75 0h2v2h-2v-2Zm3.75 0h2v2h-2v-2Zm-7.5 3.75h2v2h-2v-2Zm3.75 0h2v2h-2v-2Z"
+          />
+        </svg>
+      </button>
+      <button
+        class="app-toolbar-button"
+        :disabled="isAppLoading || !authUser"
+        type="button"
+        aria-label="Open Settings"
+        title="Open Settings"
+        @click="openSettings"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+          <path
+            d="M12 8.25A3.75 3.75 0 1 1 12 15.75 3.75 3.75 0 0 1 12 8.25Zm0 1.75a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm7.28 1.1.03.9-.03.9 1.73 1.36-1.74 3-2.05-.82a7.72 7.72 0 0 1-1.56.9l-.31 2.16h-3.48l-.31-2.16a7.72 7.72 0 0 1-1.56-.9l-2.05.82-1.74-3 1.73-1.36-.03-.9.03-.9-1.73-1.36 1.74-3 2.05.82c.48-.36 1-.66 1.56-.9l.31-2.16h3.48l.31 2.16c.56.24 1.08.54 1.56.9l2.05-.82 1.74 3-1.73 1.36Zm-1.73 2.46c.06-.51.06-1.11 0-1.62l-.09-.68 1.28-1-.54-.94-1.52.61-.55-.42a5.7 5.7 0 0 0-1.41-.81l-.64-.26-.23-1.59h-1.08l-.23 1.59-.64.26a5.7 5.7 0 0 0-1.41.81l-.55.42-1.52-.61-.54.94 1.28 1-.09.68a6.5 6.5 0 0 0 0 1.62l.09.68-1.28 1 .54.94 1.52-.61.55.42c.43.34.9.61 1.41.81l.64.26.23 1.59h1.08l.23-1.59.64-.26c.51-.2.98-.47 1.41-.81l.55-.42 1.52.61.54-.94-1.28-1 .09-.68Z"
           />
         </svg>
       </button>
@@ -748,6 +825,8 @@ onBeforeUnmount(() => {
         or
         <strong>Statistics / Views / Bayesian Markov Score</strong>
         or
+        <strong>Statistics / Views / Mixed Prediction</strong>
+        or
         <strong>Statistics / Graphs / Score Timeline</strong>
         to open runtime YAML-driven statistics dialogs.
       </p>
@@ -767,6 +846,13 @@ onBeforeUnmount(() => {
         </div>
       </dl>
     </section>
+
+    <SettingsDialog
+      v-if="isSettingsOpen"
+      :settings="appSettings"
+      @close="closeSettings"
+      @save="saveSettings"
+    />
 
     <DrawsDialog
       v-if="isDrawsOpen && !isLoading && !loadError"
@@ -997,6 +1083,25 @@ onBeforeUnmount(() => {
       :history="statisticsReferenceHistory"
       :max-reference-draw-offset="maxStatisticsReferenceDrawOffset"
       :next-actual-draw="statisticsNextActualDraw"
+      :reference-draw-offset="statisticsReferenceDrawOffset"
+      :workspace-tabs="workspaceTabs"
+      @close="closeActiveWorkspaceView"
+      @close-workspace-view="closeWorkspaceView"
+      @first-reference-draw="showFirstStatisticsReferenceDraw"
+      @latest-reference-draw="showLatestStatisticsReferenceDraw"
+      @next-reference-draw="showNextStatisticsReferenceDraw"
+      @previous-reference-draw="showPreviousStatisticsReferenceDraw"
+      @switch-workspace-view="switchWorkspaceView"
+    />
+
+    <MixedPredictionReportDialog
+      v-if="isMixedPredictionReportOpen && !isLoading && !loadError"
+      :active-workspace-view="activeWorkspaceView ?? 'mixedPrediction'"
+      :freshness-model="freshnessModel"
+      :history="statisticsReferenceHistory"
+      :max-reference-draw-offset="maxStatisticsReferenceDrawOffset"
+      :next-actual-draw="statisticsNextActualDraw"
+      :proximity-model="proximityModel"
       :reference-draw-offset="statisticsReferenceDrawOffset"
       :workspace-tabs="workspaceTabs"
       @close="closeActiveWorkspaceView"

@@ -44,11 +44,16 @@ export type WorkspaceView =
   | "coOccurrence"
   | "markovScore"
   | "bayesianMarkov"
+  | "mixedPrediction"
   | "scoreGraphs";
 
 export interface WorkspaceTab {
   id: WorkspaceView;
   label: string;
+}
+
+export interface AppSettings {
+  implementLawOfLargeNumbers: boolean;
 }
 
 export interface PredictiveScoreNumber {

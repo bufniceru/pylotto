@@ -2,10 +2,16 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import bayesianMarkovScoreJson from "../data/bayesian-markov-score.json";
 import predictiveScoreGridJson from "../data/predictive-score-grid.json";
+import { buildCoOccurrenceModel } from "../lib/coOccurrence";
+import {
+  buildCurrentCombinedPredictionRows,
+  type CombinedPredictionRow,
+} from "../lib/combinedPrediction";
 import WorkspaceTabs from "./WorkspaceTabs.vue";
 import type {
   BayesianMarkovModel,
   BayesianMarkovPrediction,
+  CoOccurrenceEdge,
   EnrichedHistory,
   FreshnessModel,
   FreshnessPrediction,
@@ -40,6 +46,16 @@ interface NextPossibleDrawState {
   uncertainNumbers?: number[];
 }
 
+interface RelatedNumberSuggestion {
+  partner: number;
+  seedNumbers: number[];
+  edges: CoOccurrenceEdge[];
+  averageLift: number;
+  totalCount: number;
+  expectedTotal: number;
+  score: number;
+}
+
 type RealDrawNumbersByDate = Record<string, number[]>;
 
 function todayIsoDate(): string {
@@ -67,6 +83,7 @@ const props = defineProps<{
 }>();
 
 const bayesianMarkovModel = bayesianMarkovScoreJson as BayesianMarkovModel;
+const coOccurrenceModel = computed(() => buildCoOccurrenceModel(props.history));
 const bayesianBands = [
   { id: "elite", label: "Elite", color: "#0a562c" },
   { id: "strong", label: "Strong", color: "#47b25c" },
@@ -189,6 +206,27 @@ function stateHasNumbers(state: NextPossibleDrawState): boolean {
   );
 }
 
+function planningStateScore(state: NextPossibleDrawState): number {
+  const normalizedState = normalizeNextPossibleDrawState(state);
+  const numberCount = normalizedState.plans.reduce(
+    (total, plan) =>
+      total +
+      plan.selectedNumbers.length +
+      plan.droppedNumbers.length +
+      plan.uncertainNumbers.length,
+    0,
+  );
+
+  return numberCount * 10 + normalizedState.plans.length;
+}
+
+function shouldPreferLocalState(
+  localStateValue: NextPossibleDrawState,
+  desktopState: NextPossibleDrawState,
+): boolean {
+  return planningStateScore(localStateValue) > planningStateScore(desktopState);
+}
+
 function saveStoredNumbers(storageKey: string, numbers: number[]): void {
   try {
     window.localStorage.setItem(storageKey, JSON.stringify(numbers));
@@ -257,6 +295,47 @@ function saveStoredNextPossibleDrawState(state: NextPossibleDrawState): void {
   }
 }
 
+let pendingDesktopSaveState: NextPossibleDrawState | null = null;
+let isSavingDesktopState = false;
+
+async function flushDesktopNextPossibleDrawState(): Promise<void> {
+  if (!window.pylottoDesktop || isSavingDesktopState) {
+    return;
+  }
+
+  isSavingDesktopState = true;
+
+  try {
+    while (pendingDesktopSaveState !== null) {
+      const stateToSave = pendingDesktopSaveState;
+      pendingDesktopSaveState = null;
+
+      try {
+        await window.pylottoDesktop.saveNextPossibleDrawState(stateToSave);
+      } catch {
+        if (pendingDesktopSaveState === null) {
+          break;
+        }
+      }
+    }
+  } finally {
+    isSavingDesktopState = false;
+  }
+
+  if (pendingDesktopSaveState !== null) {
+    void flushDesktopNextPossibleDrawState();
+  }
+}
+
+function saveDesktopNextPossibleDrawState(state: NextPossibleDrawState): void {
+  if (!window.pylottoDesktop) {
+    return;
+  }
+
+  pendingDesktopSaveState = normalizeNextPossibleDrawState(state);
+  void flushDesktopNextPossibleDrawState();
+}
+
 function buildCurrentState(): NextPossibleDrawState {
   const activePlan = createPlan(activePossibleDrawPlan.value?.name ?? "Draw 1", {
     id: activePlanId.value,
@@ -278,9 +357,7 @@ function saveNextPossibleDrawState(): void {
   const state = buildCurrentState();
 
   saveStoredNextPossibleDrawState(state);
-  void window.pylottoDesktop?.saveNextPossibleDrawState(state).catch(() => {
-    // The local storage fallback keeps planning usable if desktop persistence fails.
-  });
+  saveDesktopNextPossibleDrawState(state);
 }
 
 function applyNextPossibleDrawState(state: NextPossibleDrawState): void {
@@ -358,7 +435,7 @@ const scoreRange = computed(() => {
 });
 const maxScoreRank = computed(() => predictiveScoreGrid.numbers.length);
 const selectedPredictiveNumber = computed(() => {
-  const row = predictiveScoreGrid.numbers.find(
+  const row = combinedPredictionRows.value.find(
     (candidate) => candidate.rank === selectedPredictiveRank.value,
   );
 
@@ -473,6 +550,26 @@ const selectedBayesianPrediction = computed(() =>
     ? null
     : bayesianPredictionsByNumber.value.get(selectedFreshnessNumber.value) ?? null,
 );
+const combinedPredictionRows = computed(() =>
+  buildCurrentCombinedPredictionRows({
+    freshnessPredictions: props.freshnessModel.predictions,
+    proximityPredictions: props.proximityModel.predictions,
+    bayesianPredictions: bayesianPredictions.value,
+    predictiveRows: predictiveScoreGrid.numbers,
+    coOccurrencePredictions: coOccurrenceModel.value.predictions,
+  }),
+);
+const combinedRowsByNumber = computed(
+  () => new Map(combinedPredictionRows.value.map((row) => [row.number, row])),
+);
+const combinedTopNumbers = computed(() =>
+  combinedPredictionRows.value.slice(0, bayesianMarkovModel.numbersPerDraw).map((row) => row.number),
+);
+const selectedCombinedPrediction = computed(() =>
+  selectedFreshnessNumber.value === null
+    ? null
+    : combinedRowsByNumber.value.get(selectedFreshnessNumber.value) ?? null,
+);
 const selectedFreshnessPercent = computed(() =>
   Math.min(Math.max(selectedFreshnessPrediction.value?.hitRate ?? 0, 0), 1),
 );
@@ -485,9 +582,71 @@ const selectedProximityRankPercent = computed(() =>
 const selectedBayesianRankPercent = computed(() =>
   rankMeterPercent(selectedBayesianPrediction.value?.rank),
 );
+const selectedCombinedRankPercent = computed(() =>
+  rankMeterPercent(selectedCombinedPrediction.value?.rank),
+);
 const selectedDrawNumbers = computed(() =>
   [...nextDrawNumbers.value].sort((left, right) => left - right),
 );
+const relatedSeedNumbers = computed(() => {
+  if (selectedDrawNumbers.value.length > 0) {
+    return selectedDrawNumbers.value;
+  }
+
+  return selectedFreshnessNumber.value === null ? [] : [selectedFreshnessNumber.value];
+});
+const coOccurrenceEdgesByPair = computed(
+  () => new Map(coOccurrenceModel.value.edges.map((edge) => [edge.pair, edge])),
+);
+const relatedNumberSuggestions = computed<RelatedNumberSuggestion[]>(() => {
+  const seedNumbers = relatedSeedNumbers.value;
+
+  if (seedNumbers.length === 0 || nextDrawCount.value >= 6) {
+    return [];
+  }
+
+  return Array.from({ length: 49 }, (_value, index) => index + 1)
+    .filter(
+      (candidate) =>
+        !nextDrawNumbers.value.has(candidate) &&
+        !droppedDrawNumbers.value.has(candidate) &&
+        !seedNumbers.includes(candidate),
+    )
+    .map((candidate) => {
+      const edges = seedNumbers
+        .map((seedNumber) => coOccurrenceEdgesByPair.value.get(pairKey(seedNumber, candidate)))
+        .filter((edge): edge is CoOccurrenceEdge => edge !== undefined);
+      const totalCount = edges.reduce((total, edge) => total + edge.count, 0);
+      const expectedTotal = edges.reduce((total, edge) => total + edge.expected, 0);
+      const averageLift =
+        edges.length === 0
+          ? 0
+          : edges.reduce((total, edge) => total + edge.lift, 0) / edges.length;
+      const averageResidual =
+        edges.length === 0
+          ? 0
+          : edges.reduce((total, edge) => total + edge.residual, 0) / edges.length;
+
+      return {
+        partner: candidate,
+        seedNumbers,
+        edges,
+        averageLift,
+        totalCount,
+        expectedTotal,
+        score: averageLift * 100 + totalCount + averageResidual * 8,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        right.averageLift - left.averageLift ||
+        right.totalCount - left.totalCount ||
+        left.partner - right.partner,
+    )
+    .slice(0, 5);
+});
+const strongestRelatedSuggestion = computed(() => relatedNumberSuggestions.value[0] ?? null);
 const selectedRealDrawNumbers = computed(() =>
   [...realDrawNumbers.value].sort((left, right) => left - right),
 );
@@ -508,34 +667,39 @@ const selectedPredictiveRows = computed(() =>
     .map((number) => scoreRowsByNumber.value.get(number))
     .filter((row): row is PredictiveScoreNumber => row !== undefined),
 );
+const selectedCombinedRows = computed(() =>
+  selectedDrawNumbers.value
+    .map((number) => combinedRowsByNumber.value.get(number))
+    .filter((row): row is CombinedPredictionRow => row !== undefined),
+);
 const topPickMatchCount = computed(() => {
-  const topNumbers = new Set(predictiveScoreGrid.topNumbers);
+  const topNumbers = new Set(combinedTopNumbers.value);
 
   return selectedDrawNumbers.value.filter((number) => topNumbers.has(number)).length;
 });
 const averageSelectedRank = computed(() => {
-  if (selectedPredictiveRows.value.length === 0) {
+  if (selectedCombinedRows.value.length === 0) {
     return null;
   }
 
-  const rankTotal = selectedPredictiveRows.value.reduce(
+  const rankTotal = selectedCombinedRows.value.reduce(
     (total, row) => total + row.rank,
     0,
   );
 
-  return rankTotal / selectedPredictiveRows.value.length;
+  return rankTotal / selectedCombinedRows.value.length;
 });
 const averageSelectedStrength = computed(() => {
-  if (selectedPredictiveRows.value.length === 0 || maxScoreRank.value <= 1) {
+  if (selectedCombinedRows.value.length === 0 || maxScoreRank.value <= 1) {
     return 0;
   }
 
-  const strengthTotal = selectedPredictiveRows.value.reduce(
+  const strengthTotal = selectedCombinedRows.value.reduce(
     (total, row) => total + (maxScoreRank.value - row.rank) / (maxScoreRank.value - 1),
     0,
   );
 
-  return strengthTotal / selectedPredictiveRows.value.length;
+  return strengthTotal / selectedCombinedRows.value.length;
 });
 const predictionAgreementScore = computed(() => {
   if (nextDrawCount.value === 0) {
@@ -683,10 +847,22 @@ function toggleNextDrawNumber(number: number): void {
 
 function queueNextDrawToggle(number: number): void {
   clearClickTimer();
+  selectedFreshnessNumber.value = number;
   clickTimer = setTimeout(() => {
     toggleNextDrawNumber(number);
     clickTimer = null;
   }, 220);
+}
+
+function addRelatedNumber(number: number): void {
+  clearClickTimer();
+  selectedFreshnessNumber.value = number;
+
+  if (nextDrawNumbers.value.has(number) || nextDrawCount.value >= 6) {
+    return;
+  }
+
+  toggleNextDrawNumber(number);
 }
 
 function toggleUncertainDrawNumber(number: number): void {
@@ -768,9 +944,10 @@ function showLastPredictiveRank(): void {
 }
 
 function selectPredictiveNumberRank(number: number): void {
-  const row = scoreRowsByNumber.value.get(number);
+  const row = combinedRowsByNumber.value.get(number);
 
   if (row) {
+    selectedFreshnessNumber.value = number;
     selectPredictiveRank(row.rank);
   }
 }
@@ -872,6 +1049,18 @@ function formatPercent(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
 }
 
+function pairKey(left: number, right: number): string {
+  return `${Math.min(left, right)}-${Math.max(left, right)}`;
+}
+
+function relationshipStrengthPercent(suggestion: RelatedNumberSuggestion | null | undefined): number {
+  if (!suggestion) {
+    return 0;
+  }
+
+  return Math.min(Math.max((suggestion.averageLift / 2) * 100, 4), 100);
+}
+
 function rankMeterPercent(rank: number | undefined): number {
   if (!rank) {
     return 0;
@@ -942,7 +1131,7 @@ function handlePossibleNumberClick(event: MouseEvent, number: number): void {
 }
 
 function gradientRatio(number: number): number {
-  const row = scoreRowsByNumber.value.get(number);
+  const row = combinedRowsByNumber.value.get(number);
   const maxRank = maxScoreRank.value;
 
   if (!row || maxRank <= 1) {
@@ -981,6 +1170,7 @@ function scoreCellStyle(number: number): Record<string, string> {
 
 function scoreCellTitle(number: number): string {
   const row = scoreRowsByNumber.value.get(number);
+  const combinedRow = combinedRowsByNumber.value.get(number);
 
   if (!row) {
     return `Number ${number}`;
@@ -988,9 +1178,13 @@ function scoreCellTitle(number: number): string {
 
   return [
     `Number ${number}`,
-    `Rank ${row.rank}`,
-    `Score ${row.score.toFixed(4)}`,
-    `Score percent ${(scorePercent(number) * 100).toFixed(1)}%`,
+    `Mixed rank ${combinedRow?.rank ?? "n/a"}`,
+    `Mixed score ${combinedRow?.score.toFixed(1) ?? "n/a"}`,
+    `Agreement ${combinedRow?.agreementCount ?? 0} methods`,
+    `Top-six votes ${combinedRow?.topSixCount ?? 0}`,
+    `Grid rank ${row.rank}`,
+    `Grid score ${row.score.toFixed(4)}`,
+    `Grid percent ${(scorePercent(number) * 100).toFixed(1)}%`,
     `Gap-state probability ${(row.gapStateProbability * 100).toFixed(2)}%`,
     `Gap bucket ${row.gapStateBucket}`,
     `Recent hits ${row.recentHits}`,
@@ -1006,6 +1200,11 @@ onMounted(() => {
   void window.pylottoDesktop
     ?.loadNextPossibleDrawState()
     .then((desktopState) => {
+      if (shouldPreferLocalState(localState, desktopState)) {
+        saveDesktopNextPossibleDrawState(localState);
+        return;
+      }
+
       if (stateHasNumbers(desktopState)) {
         applyNextPossibleDrawState(desktopState);
         return;
@@ -1263,6 +1462,113 @@ onMounted(() => {
                   <span>Mean {{ formatPercent(selectedBayesianPrediction?.posteriorMean ?? 0) }}</span>
                 </div>
               </section>
+
+              <section
+                class="prediction-meter-card mixed-meter-card"
+                :style="{ '--meter-color': '#12652c' }"
+              >
+                <div class="prediction-meter-header">
+                  <span>Mixed</span>
+                  <strong>{{ selectedFreshnessNumber ?? "--" }}</strong>
+                </div>
+                <div class="prediction-meter-body">
+                  <div class="prediction-meter-scale" aria-hidden="true">
+                    <span>1</span>
+                    <span>13</span>
+                    <span>25</span>
+                    <span>37</span>
+                    <span>49</span>
+                  </div>
+                  <div
+                    class="prediction-meter-track"
+                    role="meter"
+                    :aria-valuemin="1"
+                    :aria-valuemax="49"
+                    :aria-valuenow="selectedCombinedPrediction?.rank ?? 49"
+                  >
+                    <span
+                      class="prediction-meter-fill"
+                      :style="{ height: `${selectedCombinedRankPercent}%` }"
+                    ></span>
+                  </div>
+                </div>
+                <div class="prediction-meter-details">
+                  <strong>Rank {{ selectedCombinedPrediction?.rank ?? "n/a" }}</strong>
+                  <span>Score {{ selectedCombinedPrediction?.score.toFixed(1) ?? "n/a" }}</span>
+                  <span>Agree {{ selectedCombinedPrediction?.agreementCount ?? 0 }}/5</span>
+                  <span>Top 6 {{ selectedCombinedPrediction?.topSixCount ?? 0 }}/5</span>
+                </div>
+              </section>
+
+              <section class="related-number-card">
+                <div class="related-number-header">
+                  <span>Next Related</span>
+                  <strong>{{ strongestRelatedSuggestion?.partner ?? "--" }}</strong>
+                </div>
+
+                <div class="related-number-hero">
+                  <div class="related-number-anchors">
+                    <span
+                      v-for="number in relatedSeedNumbers"
+                      :key="number"
+                      class="related-number-anchor"
+                    >
+                      {{ number }}
+                    </span>
+                    <span v-if="relatedSeedNumbers.length === 0" class="related-number-anchor">
+                      --
+                    </span>
+                  </div>
+                  <span class="related-number-link" aria-hidden="true"></span>
+                  <button
+                    class="related-number-ball"
+                    :disabled="
+                      strongestRelatedSuggestion === null ||
+                      nextDrawNumbers.has(strongestRelatedSuggestion.partner) ||
+                      nextDrawCount >= 6
+                    "
+                    type="button"
+                    @click="
+                      strongestRelatedSuggestion &&
+                        addRelatedNumber(strongestRelatedSuggestion.partner)
+                    "
+                  >
+                    {{ strongestRelatedSuggestion?.partner ?? "--" }}
+                  </button>
+                </div>
+
+                <div class="related-number-details">
+                  <strong>
+                    Avg lift x{{ strongestRelatedSuggestion?.averageLift.toFixed(2) ?? "0.00" }}
+                  </strong>
+                  <span>
+                    Pair hits {{ strongestRelatedSuggestion?.totalCount ?? 0 }}
+                  </span>
+                  <span>
+                    Related to {{ strongestRelatedSuggestion?.seedNumbers.length ?? 0 }} selected
+                  </span>
+                </div>
+
+                <div class="related-number-list">
+                  <button
+                    v-for="suggestion in relatedNumberSuggestions"
+                    :key="suggestion.partner"
+                    class="related-number-option"
+                    :class="{ selected: nextDrawNumbers.has(suggestion.partner) }"
+                    :disabled="
+                      nextDrawNumbers.has(suggestion.partner) ||
+                      (!nextDrawNumbers.has(suggestion.partner) && nextDrawCount >= 6)
+                    "
+                    type="button"
+                    @click="addRelatedNumber(suggestion.partner)"
+                  >
+                    <strong>{{ suggestion.partner }}</strong>
+                    <span>vs {{ suggestion.seedNumbers.length }} selected</span>
+                    <i :style="{ width: `${relationshipStrengthPercent(suggestion)}%` }"></i>
+                    <small>x{{ suggestion.averageLift.toFixed(2) }}</small>
+                  </button>
+                </div>
+              </section>
             </aside>
           </div>
         </div>
@@ -1276,7 +1582,7 @@ onMounted(() => {
               :class="{
                 uncertain: uncertainDrawNumbers.has(number),
                 selected: nextDrawNumbers.has(number),
-                topPick: scoreRowsByNumber.get(number)?.isTopPick,
+                topPick: combinedTopNumbers.includes(number),
                 rankFocused: selectedPredictiveNumber === number,
               }"
               :style="scoreCellStyle(number)"
@@ -1294,7 +1600,11 @@ onMounted(() => {
           <div class="score-grid-summary">
             <p class="reference-pill next-draw-reference">{{ predictiveScoreGrid.name }}</p>
             <p class="reference-pill next-draw-reference">
-              Top
+              Mixed Top
+              <strong>{{ combinedTopNumbers.join(", ") }}</strong>
+            </p>
+            <p class="reference-pill next-draw-reference">
+              Grid Top
               <strong>{{ predictiveScoreGrid.topNumbers.join(", ") }}</strong>
             </p>
             <p class="reference-pill next-draw-reference">
@@ -1302,8 +1612,8 @@ onMounted(() => {
               <strong>{{ predictiveScoreGrid.recentDrawWindow }}</strong>
             </p>
             <p class="reference-pill next-draw-reference">
-              Model
-              <strong>{{ predictiveScoreGrid.markovModel }}</strong>
+              Mix
+              <strong>Fr Pr By Grid Co</strong>
             </p>
           </div>
 

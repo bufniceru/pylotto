@@ -1,0 +1,365 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 6360 >>
+stream
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 20 Tf 42.0 551.0 Td (PyLotto Proximity Calculation) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 531.0 Td (Flow diagram for nearest-neighbor spacing and number ranking) Tj ET
+0.780 0.816 0.871 RG
+1.4 w 42.0 517.0 m 800.0 517.0 l S
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 424.0 112.0 86.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 490.0 Td (Draw) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 472.0 Td (Take one historical) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 459.0 Td (draw with six) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 446.0 Td (numbers.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 154.0 467.0 m 168.0 467.0 l S
+0.973 0.980 0.988 rg 0.973 0.980 0.988 RG
+0.847 0.871 0.910 RG
+168.0 424.0 112.0 86.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 180.0 490.0 Td (Sort) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 180.0 472.0 Td (Sort the six numbers) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 180.0 459.0 Td (from low to high.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 280.0 467.0 m 294.0 467.0 l S
+1.000 0.973 0.878 rg 1.000 0.973 0.878 RG
+0.847 0.871 0.910 RG
+294.0 424.0 112.0 86.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 306.0 490.0 Td (Distances) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 306.0 472.0 Td (For each number,) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 306.0 459.0 Td (compute distance to) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 306.0 446.0 Td (the previous and) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 306.0 433.0 Td (next selected) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 306.0 420.0 Td (number.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 406.0 467.0 m 420.0 467.0 l S
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+420.0 424.0 112.0 86.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 432.0 490.0 Td (Nearest) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 432.0 472.0 Td (nearestDistance =) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 432.0 459.0 Td (min\(leftDistance,) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 432.0 446.0 Td (rightDistance\),) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 432.0 433.0 Td (ignoring missing) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 432.0 420.0 Td (sides.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 532.0 467.0 m 546.0 467.0 l S
+0.969 0.941 1.000 rg 0.969 0.941 1.000 RG
+0.847 0.871 0.910 RG
+546.0 424.0 112.0 86.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 558.0 490.0 Td (Bucket) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 558.0 472.0 Td (Map nearestDistance) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 558.0 459.0 Td (into Paired, Tight,) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 558.0 446.0 Td (Near, Balanced,) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 558.0 433.0 Td (Wide, or Isolated.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 658.0 467.0 m 672.0 467.0 l S
+1.000 0.949 0.933 rg 1.000 0.949 0.933 RG
+0.847 0.871 0.910 RG
+672.0 424.0 112.0 86.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 684.0 490.0 Td (Counts) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 684.0 472.0 Td (Update bucket) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 684.0 459.0 Td (totals, per-number) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 684.0 446.0 Td (bucket counts,) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 684.0 433.0 Td (appearances, and) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 684.0 420.0 Td (situation) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 684.0 407.0 Td (signatures.) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 326.0 Td (Nearest-neighbor example) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 304.0 Td (If a draw is 4, 8, 9, 17, 31, 45, then number 8 has left distance 4 and right distance 1, so nearestDistance is 1 and the) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 291.0 Td (bucket is Paired. Number 31 has distances 14 and 14, so it is Wide.) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 236.0 Td (Bucket rules) Tj ET
+0.851 0.227 0.227 rg 0.851 0.227 0.227 RG
+1.000 1.000 1.000 RG
+42.0 190.0 86.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 49.0 199.0 Td (Paired) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 140.0 200.0 Td (distance <= 1) Tj ET
+0.949 0.490 0.259 rg 0.949 0.490 0.259 RG
+1.000 1.000 1.000 RG
+292.0 190.0 86.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 299.0 199.0 Td (Tight) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 390.0 200.0 Td (distance 2-3) Tj ET
+0.941 0.706 0.310 rg 0.941 0.706 0.310 RG
+1.000 1.000 1.000 RG
+542.0 190.0 86.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 549.0 199.0 Td (Near) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 640.0 200.0 Td (distance 4-6) Tj ET
+0.294 0.624 0.408 rg 0.294 0.624 0.408 RG
+1.000 1.000 1.000 RG
+42.0 138.0 86.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 49.0 147.0 Td (Balanced) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 140.0 148.0 Td (distance 7-10) Tj ET
+0.247 0.498 0.769 rg 0.247 0.498 0.769 RG
+1.000 1.000 1.000 RG
+292.0 138.0 86.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 299.0 147.0 Td (Wide) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 390.0 148.0 Td (distance 11-15) Tj ET
+0.157 0.204 0.302 rg 0.157 0.204 0.302 RG
+1.000 1.000 1.000 RG
+542.0 138.0 86.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 549.0 147.0 Td (Isolated) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 640.0 148.0 Td (distance > 15) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 10 Tf 42.0 74.0 Td (The proximity model describes the shape of actual drawn sets. It does not score unused numbers by their current board distance; it scores numbers by the historical spacing patterns they appeared in.) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 3668 >>
+stream
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 20 Tf 42.0 551.0 Td (Proximity Ranking Formula) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 531.0 Td (How bucket shares and per-number spacing histories become predictions) Tj ET
+0.780 0.816 0.871 RG
+1.4 w 42.0 517.0 m 800.0 517.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 480.0 Td (Historical counting) Tj ET
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 392.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 436.0 Td (Bucket counts) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 418.0 Td (For every drawn number, increment the) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 405.0 Td (bucket that matches its nearest-) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 392.0 Td (neighbor distance.) Tj ET
+1.000 0.973 0.878 rg 1.000 0.973 0.878 RG
+0.847 0.871 0.910 RG
+306.0 392.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 318.0 436.0 Td (Distance totals) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 418.0 Td (Add nearestDistance into that bucket) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 405.0 Td (to compute average spacing per) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 392.0 Td (bucket.) Tj ET
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+570.0 392.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 582.0 436.0 Td (Number profiles) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 418.0 Td (For each number, count how many times) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 405.0 Td (it appeared in each proximity bucket.) Tj ET
+0.541 0.584 0.659 RG
+1.4 w 272.0 424.0 m 306.0 424.0 l S
+0.541 0.584 0.659 RG
+1.4 w 536.0 424.0 m 570.0 424.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 330.0 Td (Summary formulas) Tj ET
+0.969 0.941 1.000 rg 0.969 0.941 1.000 RG
+0.847 0.871 0.910 RG
+42.0 258.0 350.0 52.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 290.0 Td (Bucket share) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 272.0 Td (share\(bucket\) = bucketCount\(bucket\) / \(drawCount * 6\)) Tj ET
+1.000 0.949 0.933 rg 1.000 0.949 0.933 RG
+0.847 0.871 0.910 RG
+450.0 258.0 350.0 52.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 462.0 290.0 Td (Average nearest distance) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 272.0 Td (averageNearestDistance = bucketDistanceTotal /) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 259.0 Td (bucketCount) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 204.0 Td (Prediction formula for number n) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 182.0 Td (For each bucket, multiply how often number n historically appeared in that bucket by the global share of that bucket. Sum) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 169.0 Td (those products, then divide by drawCount.) Tj ET
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 104.0 756.0 52.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 136.0 Td (Score) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 118.0 Td (score\(n\) = sum over buckets [ countForNumber\(n,bucket\) * bucketShare\(bucket\) ] / drawCount) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 10 Tf 42.0 70.0 Td (Sort order: score descending, then appearances descending, then smaller number.) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 4025 >>
+stream
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 20 Tf 42.0 551.0 Td (Proximity Backtesting) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 531.0 Td (How Draw Scores and Score Graphs evaluate proximity predictions) Tj ET
+0.780 0.816 0.871 RG
+1.4 w 42.0 517.0 m 800.0 517.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 480.0 Td (Previous-history-only evaluation) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 458.0 Td (For each draw after the first, the app builds proximity predictions using only earlier draws. Then it compares the actual) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 445.0 Td (draw against that ranking.) Tj ET
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 356.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 400.0 Td (Train so far) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 382.0 Td (Use bucket counts and number bucket) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 369.0 Td (profiles from previous draws only.) Tj ET
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+306.0 356.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 318.0 400.0 Td (Rank 1..49) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 382.0 Td (Calculate score for all numbers and) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 369.0 Td (sort them.) Tj ET
+1.000 0.973 0.878 rg 1.000 0.973 0.878 RG
+0.847 0.871 0.910 RG
+570.0 356.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 582.0 400.0 Td (Score actual draw) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 382.0 Td (Convert each actual number's rank) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 369.0 Td (into a 0..100 score and average all) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 356.0 Td (six.) Tj ET
+0.541 0.584 0.659 RG
+1.4 w 272.0 388.0 m 306.0 388.0 l S
+0.541 0.584 0.659 RG
+1.4 w 536.0 388.0 m 570.0 388.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 292.0 Td (Backtest metrics) Tj ET
+0.969 0.941 1.000 rg 0.969 0.941 1.000 RG
+0.847 0.871 0.910 RG
+42.0 214.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 248.0 Td (Per-number score) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 230.0 Td (\(\(49 - rank\) / 48\) * 100. Rank 1 scores 100; rank 49) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 217.0 Td (scores 0.) Tj ET
+1.000 0.949 0.933 rg 1.000 0.949 0.933 RG
+0.847 0.871 0.910 RG
+450.0 214.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 462.0 248.0 Td (Draw score) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 230.0 Td (Average of the six per-number scores for the actual) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 217.0 Td (draw.) Tj ET
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 142.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 176.0 Td (Top picks) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 158.0 Td (The six highest ranked proximity numbers from the) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 145.0 Td (previous-history-only model.) Tj ET
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+450.0 142.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 462.0 176.0 Td (Cover count) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 158.0 Td (How deep into the ranked list you must go to include the) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 145.0 Td (requested number of actual draw hits.) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 10 Tf 42.0 88.0 Td (The report also records situation signatures such as Paired x2 + Near x1 + Wide x3 to describe full-draw spacing patterns.) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 9 0 R >>
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000134 00000 n 
+0000000204 00000 n 
+0000000279 00000 n 
+0000006691 00000 n 
+0000006827 00000 n 
+0000010547 00000 n 
+0000010683 00000 n 
+0000014760 00000 n 
+trailer
+<< /Size 11 /Root 1 0 R >>
+startxref
+14897
+%%EOF

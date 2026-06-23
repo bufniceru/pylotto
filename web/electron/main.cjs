@@ -6,6 +6,7 @@ const yaml = require("js-yaml");
 
 const isDev = !app.isPackaged;
 const authStoreFileName = "users.json";
+const settingsFileName = "settings.json";
 const nextPossibleDrawStateFileName = "next-possible-draw.json";
 
 function normalizeDrawNumbers(values, maximumCount = Infinity) {
@@ -97,6 +98,16 @@ function nextPossibleDrawStatePath(email) {
     userStorageKey(email),
     nextPossibleDrawStateFileName,
   );
+}
+
+function userSettingsPath(email) {
+  return path.join(app.getPath("userData"), "users", userStorageKey(email), settingsFileName);
+}
+
+function normalizeSettings(settings) {
+  return {
+    implementLawOfLargeNumbers: settings?.implementLawOfLargeNumbers === true,
+  };
 }
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
@@ -337,6 +348,33 @@ async function saveNextPossibleDrawState(state) {
   return normalizedState;
 }
 
+async function loadSettings() {
+  const user = await requireCurrentUser();
+
+  try {
+    const fileContent = await fs.readFile(userSettingsPath(user.email), "utf8");
+    return normalizeSettings(JSON.parse(fileContent));
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return normalizeSettings({});
+    }
+
+    throw error;
+  }
+}
+
+async function saveSettings(settings) {
+  const user = await requireCurrentUser();
+  const normalizedSettings = normalizeSettings(settings);
+  await fs.mkdir(path.dirname(userSettingsPath(user.email)), { recursive: true });
+  await fs.writeFile(
+    userSettingsPath(user.email),
+    JSON.stringify(normalizedSettings, null, 2),
+    "utf8",
+  );
+  return normalizedSettings;
+}
+
 async function saveRealDraw(payload) {
   const drawDate = normalizeDrawDate(payload?.date);
   const numbers = normalizeDrawNumbers(payload?.numbers, 6);
@@ -445,6 +483,13 @@ function buildApplicationMenu(isAuthenticated = false) {
         label: "File",
         submenu: [
           {
+            label: "Settings",
+            click: () => sendMenuAction("openSettings"),
+          },
+          {
+            type: "separator",
+          },
+          {
             label: "Draws",
             submenu: [
               {
@@ -531,6 +576,10 @@ function buildApplicationMenu(isAuthenticated = false) {
                 label: "Bayesian Markov Score",
                 click: () => sendMenuAction("openBayesianMarkovReport"),
               },
+              {
+                label: "Mixed Prediction",
+                click: () => sendMenuAction("openMixedPredictionReport"),
+              },
             ],
           },
           {
@@ -593,6 +642,8 @@ ipcMain.handle("auth-current-user", async () => getCurrentUser());
 ipcMain.handle("auth-register", async (_event, payload) => registerUser(payload));
 ipcMain.handle("auth-login", async (_event, payload) => loginUser(payload));
 ipcMain.handle("auth-logout", async () => logoutUser());
+ipcMain.handle("load-settings", async () => loadSettings());
+ipcMain.handle("save-settings", async (_event, settings) => saveSettings(settings));
 ipcMain.handle("load-next-possible-draw-state", async () => loadNextPossibleDrawState());
 ipcMain.handle("save-next-possible-draw-state", async (_event, state) =>
   saveNextPossibleDrawState(state),

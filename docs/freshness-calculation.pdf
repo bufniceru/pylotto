@@ -1,0 +1,430 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 7590 >>
+stream
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 20 Tf 42.0 551.0 Td (PyLotto Freshness Calculation) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 531.0 Td (Flow diagram for singles, doublets, triplets, and next-draw ranking) Tj ET
+0.780 0.816 0.871 RG
+1.4 w 42.0 517.0 m 800.0 517.0 l S
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 484.0 Td (History) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 466.0 Td (Draws are processed) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 453.0 Td (oldest to newest.) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 440.0 Td (Each draw has six) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 427.0 Td (numbers.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 136.0 462.0 m 154.0 462.0 l S
+0.973 0.980 0.988 rg 0.973 0.980 0.988 RG
+0.847 0.871 0.910 RG
+154.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 166.0 484.0 Td (Last Seen) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 166.0 466.0 Td (Before each draw is) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 166.0 453.0 Td (counted, the model) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 166.0 440.0 Td (checks when every) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 166.0 427.0 Td (number, pair, and) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 166.0 414.0 Td (triplet was last) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 166.0 401.0 Td (seen.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 248.0 462.0 m 266.0 462.0 l S
+1.000 0.973 0.878 rg 1.000 0.973 0.878 RG
+0.847 0.871 0.910 RG
+266.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 278.0 484.0 Td (Gap) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 278.0 466.0 Td (gap = current draw) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 278.0 453.0 Td (index - previous) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 278.0 440.0 Td (seen index - 1. If) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 278.0 427.0 Td (never seen, gap is) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 278.0 414.0 Td (null.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 360.0 462.0 m 378.0 462.0 l S
+0.957 0.969 0.984 rg 0.957 0.969 0.984 RG
+0.847 0.871 0.910 RG
+378.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 390.0 484.0 Td (Bucket) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 390.0 466.0 Td (The gap is mapped) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 390.0 453.0 Td (into New, Repeat,) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 390.0 440.0 Td (Very fresh, Fresh,) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 390.0 427.0 Td (Warm, Stale, Cold,) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 390.0 414.0 Td (or Very cold.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 472.0 462.0 m 490.0 462.0 l S
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+490.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 502.0 484.0 Td (Exposure and Hit) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 502.0 466.0 Td (Every possible item) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 502.0 453.0 Td (receives one) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 502.0 440.0 Td (exposure in its) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 502.0 427.0 Td (bucket. Drawn items) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 502.0 414.0 Td (also receive one) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 502.0 401.0 Td (hit.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 584.0 462.0 m 602.0 462.0 l S
+1.000 0.949 0.933 rg 1.000 0.949 0.933 RG
+0.847 0.871 0.910 RG
+602.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 614.0 484.0 Td (Hit Rate) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 614.0 466.0 Td (bucket hit rate =) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 614.0 453.0 Td (drawn count /) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 614.0 440.0 Td (exposure count. This) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 614.0 427.0 Td (is the freshness) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 614.0 414.0 Td (probability signal.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 696.0 462.0 m 714.0 462.0 l S
+0.969 0.941 1.000 rg 0.969 0.941 1.000 RG
+0.847 0.871 0.910 RG
+714.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 726.0 484.0 Td (Prediction) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 726.0 466.0 Td (Current items are) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 726.0 453.0 Td (bucketed by their) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 726.0 440.0 Td (latest gap, assigned) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 726.0 427.0 Td (the bucket hit rate,) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 726.0 414.0 Td (then ranked.) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 300.0 Td (One historical draw update) Tj ET
+1.000 1.000 1.000 rg 1.000 1.000 1.000 RG
+0.847 0.871 0.910 RG
+42.0 204.0 235.0 72.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 256.0 Td (For each number 1..49) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 238.0 Td (Classify current freshness before) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 225.0 Td (updating lastSeen. If the number is) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 212.0 Td (drawn, increment drawn count in that) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 199.0 Td (bucket.) Tj ET
+1.000 1.000 1.000 rg 1.000 1.000 1.000 RG
+0.847 0.871 0.910 RG
+304.0 204.0 235.0 72.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 316.0 256.0 Td (For each pair C\(49,2\)) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 316.0 238.0 Td (Do the same exposure/hit counting for) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 316.0 225.0 Td (every possible doublet. A 6-number) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 316.0 212.0 Td (draw contains 15 actual doublets.) Tj ET
+1.000 1.000 1.000 rg 1.000 1.000 1.000 RG
+0.847 0.871 0.910 RG
+566.0 204.0 235.0 72.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 578.0 256.0 Td (For each triplet C\(49,3\)) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 578.0 238.0 Td (Do the same exposure/hit counting for) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 578.0 225.0 Td (every possible triplet. A 6-number) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 578.0 212.0 Td (draw contains 20 actual triplets.) Tj ET
+0.541 0.584 0.659 RG
+1.4 w 277.0 240.0 m 304.0 240.0 l S
+0.541 0.584 0.659 RG
+1.4 w 539.0 240.0 m 566.0 240.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 13 Tf 42.0 154.0 Td (Important ordering detail) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 134.0 Td (A draw is evaluated against the state before that draw. Only after exposures and hits are counted does the model update) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 121.0 Td (lastSeen for the numbers, doublets, and triplets in the draw.) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 4754 >>
+stream
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 20 Tf 42.0 551.0 Td (Freshness Buckets and Core Formulas) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 531.0 Td (The model turns last-seen gaps into bucket-level historical hit rates) Tj ET
+0.780 0.816 0.871 RG
+1.4 w 42.0 517.0 m 800.0 517.0 l S
+0.482 0.529 0.596 rg 0.482 0.529 0.596 RG
+1.000 1.000 1.000 RG
+42.0 480.0 82.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 49.0 489.0 Td (New) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 134.0 490.0 Td (gap = null) Tj ET
+0.851 0.227 0.227 rg 0.851 0.227 0.227 RG
+1.000 1.000 1.000 RG
+232.0 480.0 82.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 239.0 489.0 Td (Repeat) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 324.0 490.0 Td (gap = 0) Tj ET
+0.949 0.490 0.259 rg 0.949 0.490 0.259 RG
+1.000 1.000 1.000 RG
+422.0 480.0 82.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 429.0 489.0 Td (Very fresh) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 514.0 490.0 Td (gap 1-2) Tj ET
+0.941 0.706 0.310 rg 0.941 0.706 0.310 RG
+1.000 1.000 1.000 RG
+612.0 480.0 82.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 619.0 489.0 Td (Fresh) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 704.0 490.0 Td (gap 3-5) Tj ET
+0.294 0.624 0.408 rg 0.294 0.624 0.408 RG
+1.000 1.000 1.000 RG
+42.0 422.0 82.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 49.0 431.0 Td (Warm) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 134.0 432.0 Td (gap 6-10) Tj ET
+0.247 0.498 0.769 rg 0.247 0.498 0.769 RG
+1.000 1.000 1.000 RG
+232.0 422.0 82.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 239.0 431.0 Td (Stale) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 324.0 432.0 Td (gap 11-20) Tj ET
+0.447 0.333 0.710 rg 0.447 0.333 0.710 RG
+1.000 1.000 1.000 RG
+422.0 422.0 82.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 429.0 431.0 Td (Cold) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 514.0 432.0 Td (gap 21-35) Tj ET
+0.157 0.204 0.302 rg 0.157 0.204 0.302 RG
+1.000 1.000 1.000 RG
+612.0 422.0 82.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 619.0 431.0 Td (Very cold) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 704.0 432.0 Td (gap >= 36) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 326.0 Td (Single-number counting) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 304.0 Td (For each historical draw and for each number from 1 to 49:) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 58.0 276.0 Td (1. previousIndex = lastSeen[number]) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 58.0 256.0 Td (2. gap = null if previousIndex is null, otherwise drawIndex - previousIndex - 1) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 58.0 236.0 Td (3. bucket = bucketForGap\(gap\)) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 58.0 216.0 Td (4. exposureByBucket[bucket] += 1) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 58.0 196.0 Td (5. if number is in this draw: drawnByBucket[bucket] += 1) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 58.0 176.0 Td (6. after the draw is fully counted: lastSeen[number] = drawIndex for drawn numbers) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 468.0 326.0 Td (Formulas) Tj ET
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+468.0 254.0 320.0 52.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 480.0 286.0 Td (Gap) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 480.0 268.0 Td (gap = currentDrawIndex - previousSeenIndex - 1) Tj ET
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+468.0 184.0 320.0 52.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 480.0 216.0 Td (Hit rate) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 480.0 198.0 Td (hitRate\(bucket\) = drawnCount\(bucket\) /) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 480.0 185.0 Td (exposureCount\(bucket\)) Tj ET
+1.000 0.973 0.878 rg 1.000 0.973 0.878 RG
+0.847 0.871 0.910 RG
+468.0 114.0 320.0 52.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 480.0 146.0 Td (Draw share) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 480.0 128.0 Td (drawShare\(bucket\) = drawnCount\(bucket\) / \(drawCount) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 480.0 115.0 Td (* itemsPerDraw\)) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 10 Tf 42.0 82.0 Td (itemsPerDraw is 6 for singles, 15 for doublets, and 20 for triplets.) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 4595 >>
+stream
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 20 Tf 42.0 551.0 Td (Prediction Ranking and Evaluation) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 531.0 Td (How the report ranks next-draw candidates) Tj ET
+0.780 0.816 0.871 RG
+1.4 w 42.0 517.0 m 800.0 517.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 478.0 Td (Next draw prediction) Tj ET
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 390.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 434.0 Td (Current gap) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 416.0 Td (After all historical draws are) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 403.0 Td (processed, compute each candidate's) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 390.0 Td (current gap from the final lastSeen) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 377.0 Td (map.) Tj ET
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+306.0 390.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 318.0 434.0 Td (Bucket rate) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 416.0 Td (Map the current gap to a freshness) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 403.0 Td (bucket and assign that bucket's) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 390.0 Td (historical hit rate.) Tj ET
+1.000 0.973 0.878 rg 1.000 0.973 0.878 RG
+0.847 0.871 0.910 RG
+570.0 390.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 582.0 434.0 Td (Sort) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 416.0 Td (Rank by hit rate descending, then) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 403.0 Td (current gap descending, then number) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 390.0 Td (or key ascending.) Tj ET
+0.541 0.584 0.659 RG
+1.4 w 272.0 422.0 m 306.0 422.0 l S
+0.541 0.584 0.659 RG
+1.4 w 536.0 422.0 m 570.0 422.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 330.0 Td (Scopes) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 308.0 Td (Singles: 49 candidates, one per lottery number. Doublets: all C\(49,2\) = 1176 possible pairs. Triplets: all C\(49,3\) = 18424) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 295.0 Td (possible triples. The same freshness bucket logic is applied to all three scopes.) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 246.0 Td (Backtest score used by Draw Scores and Score Graphs) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 224.0 Td (For each draw after the first, the app builds a prediction using only previous draws. It ranks the 49 numbers, then compares) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 211.0 Td (the actual draw to those ranks.) Tj ET
+0.969 0.941 1.000 rg 0.969 0.941 1.000 RG
+0.847 0.871 0.910 RG
+42.0 142.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 176.0 Td (Per-number score) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 158.0 Td (\(\(49 - rank\) / 48\) * 100. Rank 1 scores 100; rank 49) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 145.0 Td (scores 0.) Tj ET
+1.000 0.949 0.933 rg 1.000 0.949 0.933 RG
+0.847 0.871 0.910 RG
+450.0 142.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 462.0 176.0 Td (Draw score) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 158.0 Td (Average of the six per-number scores for the actual) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 145.0 Td (draw.) Tj ET
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 70.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 104.0 Td (Top picks) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 86.0 Td (The six highest ranked freshness numbers from the) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 73.0 Td (previous-history-only model.) Tj ET
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+450.0 70.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 462.0 104.0 Td (Cover count) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 86.0 Td (How deep into the ranked list you must go to include the) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 73.0 Td (requested number of actual draw hits.) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 9 0 R >>
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000134 00000 n 
+0000000204 00000 n 
+0000000279 00000 n 
+0000007921 00000 n 
+0000008057 00000 n 
+0000012863 00000 n 
+0000012999 00000 n 
+0000017646 00000 n 
+trailer
+<< /Size 11 /Root 1 0 R >>
+startxref
+17783
+%%EOF

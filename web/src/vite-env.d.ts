@@ -11,7 +11,9 @@ interface PylottoDesktopApi {
     lastDraw: string;
     draws: { date: string; numbers: number[] }[];
   }>;
+  loadSettings: () => Promise<AppSettings>;
   loadNextPossibleDrawState: () => Promise<NextPossibleDrawState>;
+  saveSettings: (settings: AppSettings) => Promise<AppSettings>;
   saveNextPossibleDrawState: (
     state: NextPossibleDrawState,
   ) => Promise<NextPossibleDrawState>;
@@ -37,6 +39,10 @@ interface AuthCredentials {
 
 interface AuthUser {
   email: string;
+}
+
+interface AppSettings {
+  implementLawOfLargeNumbers: boolean;
 }
 
 interface NextPossibleDrawState {

@@ -60,10 +60,12 @@ function buildBayesianMarkovPredictionResults(
   coverCounts: (number | null)[];
   scores: (number | null)[];
   topPicks: (number[] | null)[];
+  rankings: (number[] | null)[];
 } {
   const coverCounts: (number | null)[] = [];
   const scores: (number | null)[] = [];
   const topPicks: (number[] | null)[] = [];
+  const rankings: (number[] | null)[] = [];
   const lastSeen = new Map<number, number | null>();
   const opportunities = new Map<number, number>();
   const hits = new Map<number, number>();
@@ -85,6 +87,7 @@ function buildBayesianMarkovPredictionResults(
       coverCounts.push(null);
       scores.push(null);
       topPicks.push(null);
+      rankings.push(null);
     } else {
       const posteriorMeans = new Map<number, number>();
 
@@ -122,6 +125,7 @@ function buildBayesianMarkovPredictionResults(
       coverCounts.push(countNumbersNeededToCoverDraw(drawnValues, rankedNumbers, coverSize));
       scores.push(scoreDrawAgainstRanking(drawnValues, rankedNumbers));
       topPicks.push(rankedNumbers.slice(0, numbersPerDraw));
+      rankings.push(rankedNumbers);
     }
 
     if (drawIndex > 0) {
@@ -142,7 +146,7 @@ function buildBayesianMarkovPredictionResults(
     }
   });
 
-  return { coverCounts, scores, topPicks };
+  return { coverCounts, scores, topPicks, rankings };
 }
 
 export function buildBayesianMarkovPredictionScores(history: EnrichedHistory): (number | null)[] {
@@ -160,6 +164,12 @@ export function buildBayesianMarkovPredictionTopPicks(
   history: EnrichedHistory,
 ): (number[] | null)[] {
   return buildBayesianMarkovPredictionResults(history).topPicks;
+}
+
+export function buildBayesianMarkovPredictionRankings(
+  history: EnrichedHistory,
+): (number[] | null)[] {
+  return buildBayesianMarkovPredictionResults(history).rankings;
 }
 
 export function bayesianMarkovRankingCount(): number {

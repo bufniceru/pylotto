@@ -6,6 +6,11 @@ import {
   buildBayesianMarkovPredictionTopPicks,
 } from "../lib/bayesianMarkovScore";
 import {
+  buildCombinedPredictionCoverCounts,
+  buildCombinedPredictionScores,
+  buildCombinedPredictionTopPicks,
+} from "../lib/combinedPrediction";
+import {
   buildFreshnessPredictionCoverCounts,
   buildFreshnessPredictionScores,
   buildFreshnessPredictionTopPicks,
@@ -57,6 +62,15 @@ const bayesianMarkovPredictionCoverCounts = computed(() =>
 const bayesianMarkovPredictionTopPicks = computed(() =>
   buildBayesianMarkovPredictionTopPicks({ draws: props.draws }),
 );
+const combinedPredictionScores = computed(() =>
+  buildCombinedPredictionScores({ draws: props.draws }),
+);
+const combinedPredictionCoverCounts = computed(() =>
+  buildCombinedPredictionCoverCounts({ draws: props.draws }),
+);
+const combinedPredictionTopPicks = computed(() =>
+  buildCombinedPredictionTopPicks({ draws: props.draws }),
+);
 const tableDraws = computed(() =>
   props.draws
     .map((draw, index) => ({
@@ -80,6 +94,12 @@ const tableDraws = computed(() =>
         bayesianMarkovPredictionTopPicks.value[index] ?? null,
       ),
       bayesianMarkovPredictionCoverCount: bayesianMarkovPredictionCoverCounts.value[index] ?? null,
+      combinedPredictionScore: combinedPredictionScores.value[index] ?? null,
+      combinedPredictionHits: predictionHitCount(
+        draw,
+        combinedPredictionTopPicks.value[index] ?? null,
+      ),
+      combinedPredictionCoverCount: combinedPredictionCoverCounts.value[index] ?? null,
     }))
     .sort((left, right) => right.draw.date.localeCompare(left.draw.date)),
 );
@@ -159,11 +179,20 @@ function formatPredictionCoverCount(coverCount: number | null): string {
                 <th title="How many previous Bayesian-ranked picks you would need to play to include all six numbers in this draw.">
                   By Cover
                 </th>
+                <th title="How strongly the actual draw matched the combined Fr, Pr, and By ranking generated from previous draws only.">
+                  Mx %
+                </th>
+                <th title="How many actual draw numbers appeared in the previous combined top-six picks.">
+                  Mx Hits
+                </th>
+                <th title="How many previous combined-ranked picks you would need to play to include all six numbers in this draw.">
+                  Mx Cover
+                </th>
               </tr>
             </thead>
             <tbody>
               <tr
-                v-for="{ draw, index, freshnessPredictionScore, freshnessPredictionHits, freshnessPredictionCoverCount, proximityPredictionScore, proximityPredictionHits, proximityPredictionCoverCount, bayesianMarkovPredictionScore, bayesianMarkovPredictionHits, bayesianMarkovPredictionCoverCount } in tableDraws"
+                v-for="{ draw, index, freshnessPredictionScore, freshnessPredictionHits, freshnessPredictionCoverCount, proximityPredictionScore, proximityPredictionHits, proximityPredictionCoverCount, bayesianMarkovPredictionScore, bayesianMarkovPredictionHits, bayesianMarkovPredictionCoverCount, combinedPredictionScore, combinedPredictionHits, combinedPredictionCoverCount } in tableDraws"
                 :key="draw.date"
               >
                 <td>{{ index + 1 }}</td>
@@ -178,6 +207,9 @@ function formatPredictionCoverCount(coverCount: number | null): string {
                 <td>{{ formatPredictionScore(bayesianMarkovPredictionScore) }}</td>
                 <td>{{ formatPredictionHits(bayesianMarkovPredictionHits) }}</td>
                 <td>{{ formatPredictionCoverCount(bayesianMarkovPredictionCoverCount) }}</td>
+                <td>{{ formatPredictionScore(combinedPredictionScore) }}</td>
+                <td>{{ formatPredictionHits(combinedPredictionHits) }}</td>
+                <td>{{ formatPredictionCoverCount(combinedPredictionCoverCount) }}</td>
               </tr>
             </tbody>
           </table>

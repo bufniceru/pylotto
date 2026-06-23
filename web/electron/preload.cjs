@@ -6,7 +6,9 @@ contextBridge.exposeInMainWorld("pylottoDesktop", {
   authLogout: () => ipcRenderer.invoke("auth-logout"),
   authRegister: (payload) => ipcRenderer.invoke("auth-register", payload),
   loadLottoHistory: () => ipcRenderer.invoke("load-lotto-history"),
+  loadSettings: () => ipcRenderer.invoke("load-settings"),
   loadNextPossibleDrawState: () => ipcRenderer.invoke("load-next-possible-draw-state"),
+  saveSettings: (settings) => ipcRenderer.invoke("save-settings", settings),
   saveNextPossibleDrawState: (state) =>
     ipcRenderer.invoke("save-next-possible-draw-state", state),
   saveRealDraw: (payload) => ipcRenderer.invoke("save-real-draw", payload),

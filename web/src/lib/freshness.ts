@@ -578,6 +578,10 @@ export function buildFreshnessPredictionTopPicks(history: EnrichedHistory): (num
   return buildFreshnessPredictionResults(history).topPicks;
 }
 
+export function buildFreshnessPredictionRankings(history: EnrichedHistory): (number[] | null)[] {
+  return buildFreshnessPredictionResults(history).rankings;
+}
+
 function buildFreshnessPredictionResults(
   history: EnrichedHistory,
   coverSize = 6,
@@ -585,6 +589,7 @@ function buildFreshnessPredictionResults(
   coverCounts: (number | null)[];
   scores: (number | null)[];
   topPicks: (number[] | null)[];
+  rankings: (number[] | null)[];
 } {
   const lastSeen = new Map<number, number | null>();
   const drawnByBucket = emptyBucketMap();
@@ -592,6 +597,7 @@ function buildFreshnessPredictionResults(
   const coverCounts: (number | null)[] = [];
   const scores: (number | null)[] = [];
   const topPicks: (number[] | null)[] = [];
+  const rankings: (number[] | null)[] = [];
 
   for (let number = 1; number <= 49; number += 1) {
     lastSeen.set(number, null);
@@ -602,6 +608,7 @@ function buildFreshnessPredictionResults(
       coverCounts.push(null);
       scores.push(null);
       topPicks.push(null);
+      rankings.push(null);
     } else {
       const bucketSummaries = freshnessBuckets.map((bucket) => {
         const drawnCount = drawnByBucket.get(bucket.id) ?? 0;
@@ -658,6 +665,7 @@ function buildFreshnessPredictionResults(
       );
       scores.push(drawScore);
       topPicks.push(rankedNumbers.slice(0, 6));
+      rankings.push(rankedNumbers);
     }
 
     const drawnValues = new Set(draw.numbers.map((number) => number.value));
@@ -679,5 +687,5 @@ function buildFreshnessPredictionResults(
     }
   });
 
-  return { coverCounts, scores, topPicks };
+  return { coverCounts, scores, topPicks, rankings };
 }

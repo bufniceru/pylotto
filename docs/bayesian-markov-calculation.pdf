@@ -1,0 +1,463 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R] /Count 4 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 6942 >>
+stream
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 20 Tf 42.0 551.0 Td (PyLotto Bayesian Markov Calculation) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 531.0 Td (Beta-Binomial gap-state model for ranking next-draw numbers) Tj ET
+0.780 0.816 0.871 RG
+1.4 w 42.0 517.0 m 800.0 517.0 l S
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 484.0 Td (History) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 466.0 Td (Process historical) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 453.0 Td (draws oldest to) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 440.0 Td (newest.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 136.0 462.0 m 154.0 462.0 l S
+0.973 0.980 0.988 rg 0.973 0.980 0.988 RG
+0.847 0.871 0.910 RG
+154.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 166.0 484.0 Td (Gap state) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 166.0 466.0 Td (For each number) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 166.0 453.0 Td (before a draw,) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 166.0 440.0 Td (calculate how long) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 166.0 427.0 Td (since it last) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 166.0 414.0 Td (appeared.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 248.0 462.0 m 266.0 462.0 l S
+1.000 0.973 0.878 rg 1.000 0.973 0.878 RG
+0.847 0.871 0.910 RG
+266.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 278.0 484.0 Td (Bucket) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 278.0 466.0 Td (Clamp gap into) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 278.0 453.0 Td (buckets 0..35. Gaps) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 278.0 440.0 Td (above 35 use bucket) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 278.0 427.0 Td (35.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 360.0 462.0 m 378.0 462.0 l S
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+378.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 390.0 484.0 Td (Opportunity) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 390.0 466.0 Td (Every number before) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 390.0 453.0 Td (every draw is one) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 390.0 440.0 Td (opportunity for its) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 390.0 427.0 Td (current bucket.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 472.0 462.0 m 490.0 462.0 l S
+1.000 0.949 0.933 rg 1.000 0.949 0.933 RG
+0.847 0.871 0.910 RG
+490.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 502.0 484.0 Td (Hit) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 502.0 466.0 Td (If the number is) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 502.0 453.0 Td (drawn, that bucket) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 502.0 440.0 Td (receives a hit.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 584.0 462.0 m 602.0 462.0 l S
+0.969 0.941 1.000 rg 0.969 0.941 1.000 RG
+0.847 0.871 0.910 RG
+602.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 614.0 484.0 Td (Bayes) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 614.0 466.0 Td (Estimate bucket hit) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 614.0 453.0 Td (probabilities with a) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 614.0 440.0 Td (Beta-Binomial model.) Tj ET
+0.424 0.478 0.565 RG
+1.4 w 696.0 462.0 m 714.0 462.0 l S
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+714.0 420.0 94.0 84.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 726.0 484.0 Td (Rank) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 726.0 466.0 Td (Apply posterior) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 726.0 453.0 Td (bucket probabilities) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 726.0 440.0 Td (to current gaps and) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 726.0 427.0 Td (rank numbers.) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 306.0 Td (Model constants from the export script) Tj ET
+1.000 1.000 1.000 rg 1.000 1.000 1.000 RG
+0.847 0.871 0.910 RG
+42.0 252.0 160.0 34.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 266.0 Td (MAX_GAP_BUCKET) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 248.0 Td (35) Tj ET
+1.000 1.000 1.000 rg 1.000 1.000 1.000 RG
+0.847 0.871 0.910 RG
+232.0 252.0 160.0 34.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 244.0 266.0 Td (NUMBERS_PER_DRAW) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 244.0 248.0 Td (6) Tj ET
+1.000 1.000 1.000 rg 1.000 1.000 1.000 RG
+0.847 0.871 0.910 RG
+422.0 252.0 160.0 34.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 434.0 266.0 Td (NUMBER_COUNT) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 434.0 248.0 Td (49) Tj ET
+1.000 1.000 1.000 rg 1.000 1.000 1.000 RG
+0.847 0.871 0.910 RG
+612.0 252.0 160.0 34.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 624.0 266.0 Td (PRIOR_STRENGTH) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 624.0 248.0 Td (8.0) Tj ET
+1.000 1.000 1.000 rg 1.000 1.000 1.000 RG
+0.847 0.871 0.910 RG
+42.0 204.0 160.0 34.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 218.0 Td (POSTERIOR_DRAWS) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 200.0 Td (1000) Tj ET
+1.000 1.000 1.000 rg 1.000 1.000 1.000 RG
+0.847 0.871 0.910 RG
+232.0 204.0 160.0 34.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 244.0 218.0 Td (TUNE_DRAWS) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 244.0 200.0 Td (1000) Tj ET
+1.000 1.000 1.000 rg 1.000 1.000 1.000 RG
+0.847 0.871 0.910 RG
+422.0 204.0 160.0 34.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 434.0 218.0 Td (CHAINS) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 434.0 200.0 Td (2) Tj ET
+1.000 1.000 1.000 rg 1.000 1.000 1.000 RG
+0.847 0.871 0.910 RG
+612.0 204.0 160.0 34.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 624.0 218.0 Td (RANDOM_SEED) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 624.0 200.0 Td (20260619) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 122.0 Td (Gap formula) Tj ET
+1.000 0.973 0.878 rg 1.000 0.973 0.878 RG
+0.847 0.871 0.910 RG
+42.0 54.0 756.0 48.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 82.0 Td (Before a draw) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 64.0 Td (gap = drawIndex if never seen, otherwise drawIndex - 1 - previousSeenIndex) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 2949 >>
+stream
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 20 Tf 42.0 551.0 Td (Bayesian Posterior) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 531.0 Td (How opportunities and hits become bucket probabilities) Tj ET
+0.780 0.816 0.871 RG
+1.4 w 42.0 517.0 m 800.0 517.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 480.0 Td (Training counts) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 458.0 Td (The first draw initializes lastSeen and is not counted as training. For every later draw, every number 1..49 contributes) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 445.0 Td (one opportunity to its current gap bucket. Drawn numbers also contribute one hit.) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 386.0 Td (Prior) Tj ET
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 316.0 350.0 52.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 348.0 Td (Base probability) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 330.0 Td (baseProbability = numbersPerDraw / numberCount = 6 / 49) Tj ET
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+450.0 316.0 350.0 52.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 462.0 348.0 Td (Beta prior) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 330.0 Td (alpha = priorStrength * baseProbability; beta =) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 317.0 Td (priorStrength * \(1 - baseProbability\)) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 262.0 Td (Likelihood and posterior sampling) Tj ET
+0.969 0.941 1.000 rg 0.969 0.941 1.000 RG
+0.847 0.871 0.910 RG
+42.0 184.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 218.0 Td (Bucket probability) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 200.0 Td (p_bucket ~ Beta\(alpha, beta\), one probability for each) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 187.0 Td (gap bucket 0..35.) Tj ET
+1.000 0.949 0.933 rg 1.000 0.949 0.933 RG
+0.847 0.871 0.910 RG
+450.0 184.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 462.0 218.0 Td (Observed hits) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 200.0 Td (hits_bucket ~ Binomial\(opportunities_bucket, p_bucket\)) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 132.0 Td (Posterior summary per bucket) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 110.0 Td (The export stores posterior mean, median, 5th percentile, and 95th percentile. The 5th and 95th percentiles form the) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 97.0 Td (displayed 90% credible interval.) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 10 Tf 42.0 70.0 Td (The generated JSON lives at web/src/data/bayesian-markov-score.json.) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 3632 >>
+stream
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 20 Tf 42.0 551.0 Td (Bayesian Ranking and Scores) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 531.0 Td (How posterior bucket means become next-draw rankings) Tj ET
+0.780 0.816 0.871 RG
+1.4 w 42.0 517.0 m 800.0 517.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 480.0 Td (Current prediction) Tj ET
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 392.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 436.0 Td (Current gaps) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 418.0 Td (After all draws, compute current gap) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 405.0 Td (for each number.) Tj ET
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+306.0 392.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 318.0 436.0 Td (Bucket mean) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 418.0 Td (Assign each number the posterior mean) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 405.0 Td (of its current gap bucket.) Tj ET
+1.000 0.973 0.878 rg 1.000 0.973 0.878 RG
+0.847 0.871 0.910 RG
+570.0 392.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 582.0 436.0 Td (Scale) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 418.0 Td (Min-max scale all 49 posterior means) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 405.0 Td (to a 0..100 score.) Tj ET
+0.541 0.584 0.659 RG
+1.4 w 272.0 424.0 m 306.0 424.0 l S
+0.541 0.584 0.659 RG
+1.4 w 536.0 424.0 m 570.0 424.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 330.0 Td (Score formula) Tj ET
+0.969 0.941 1.000 rg 0.969 0.941 1.000 RG
+0.847 0.871 0.910 RG
+42.0 258.0 756.0 52.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 290.0 Td (Scaled score) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 272.0 Td (score\(n\) = \(posteriorMean\(n\) - minMean\) / \(maxMean - minMean\) * 100) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 204.0 Td (Band labels) Tj ET
+0.039 0.337 0.173 rg 0.039 0.337 0.173 RG
+1.000 1.000 1.000 RG
+42.0 158.0 78.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 49.0 167.0 Td (Elite) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 130.0 168.0 Td (score >= 80) Tj ET
+0.278 0.698 0.361 rg 0.278 0.698 0.361 RG
+1.000 1.000 1.000 RG
+232.0 158.0 78.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 239.0 167.0 Td (Strong) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 320.0 168.0 Td (score 60-79.99) Tj ET
+0.941 0.706 0.310 rg 0.941 0.706 0.310 RG
+1.000 1.000 1.000 RG
+422.0 158.0 78.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 429.0 167.0 Td (Active) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 510.0 168.0 Td (score 40-59.99) Tj ET
+0.482 0.529 0.596 rg 0.482 0.529 0.596 RG
+1.000 1.000 1.000 RG
+612.0 158.0 78.0 28.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 8 Tf 619.0 167.0 Td (Soft) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 700.0 168.0 Td (score < 40) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 116.0 Td (Sort order) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 94.0 Td (Numbers are ranked by score descending, posterior mean descending, current gap descending, then smaller number. The top) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 81.0 Td (six become the Bayesian top numbers.) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 4103 >>
+stream
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 20 Tf 42.0 551.0 Td (Bayesian Backtesting) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 531.0 Td (How Bayesian scores are evaluated in Draw Scores and Score Graphs) Tj ET
+0.780 0.816 0.871 RG
+1.4 w 42.0 517.0 m 800.0 517.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 480.0 Td (Previous-history-only scoring) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 458.0 Td (For each draw after the first, the app rebuilds simple posterior means from previous opportunities and hits using the same) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 10 Tf 42.0 445.0 Td (prior. It ranks numbers using only earlier draws, then scores the actual draw.) Tj ET
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 356.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 400.0 Td (Posterior mean) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 382.0 Td (\(hits + priorStrength *) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 369.0 Td (baseProbability\) / \(opportunities +) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 356.0 Td (priorStrength\)) Tj ET
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+306.0 356.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 318.0 400.0 Td (Rank) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 382.0 Td (Apply posterior means to current gaps) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 318.0 369.0 Td (and sort the 49 numbers.) Tj ET
+1.000 0.973 0.878 rg 1.000 0.973 0.878 RG
+0.847 0.871 0.910 RG
+570.0 356.0 230.0 64.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 582.0 400.0 Td (Compare) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 382.0 Td (Convert actual drawn numbers' ranks) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 582.0 369.0 Td (to scores and average them.) Tj ET
+0.541 0.584 0.659 RG
+1.4 w 272.0 388.0 m 306.0 388.0 l S
+0.541 0.584 0.659 RG
+1.4 w 536.0 388.0 m 570.0 388.0 l S
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 14 Tf 42.0 292.0 Td (Backtest metrics) Tj ET
+0.969 0.941 1.000 rg 0.969 0.941 1.000 RG
+0.847 0.871 0.910 RG
+42.0 214.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 248.0 Td (Per-number score) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 230.0 Td (\(\(49 - rank\) / 48\) * 100. Rank 1 scores 100; rank 49) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 217.0 Td (scores 0.) Tj ET
+1.000 0.949 0.933 rg 1.000 0.949 0.933 RG
+0.847 0.871 0.910 RG
+450.0 214.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 462.0 248.0 Td (Draw score) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 230.0 Td (Average of the six per-number scores for the actual) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 217.0 Td (draw.) Tj ET
+0.937 0.961 1.000 rg 0.937 0.961 1.000 RG
+0.847 0.871 0.910 RG
+42.0 142.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 54.0 176.0 Td (Top picks) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 158.0 Td (The six highest ranked Bayesian numbers from the) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 54.0 145.0 Td (previous-history-only model.) Tj ET
+0.929 0.973 0.945 rg 0.929 0.973 0.945 RG
+0.847 0.871 0.910 RG
+450.0 142.0 350.0 54.0 re B
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 12 Tf 462.0 176.0 Td (Cover count) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 158.0 Td (How deep into the ranked list you must go to include the) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F1 9 Tf 462.0 145.0 Td (requested number of actual draw hits.) Tj ET
+0.090 0.125 0.200 rg 0.090 0.125 0.200 RG
+BT /F2 10 Tf 42.0 88.0 Td (The UI report uses the generated PyMC JSON for the current model display, while backtests use the closed-form posterior mean for each historical prefix.) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 11 0 R >>
+endobj
+xref
+0 13
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000141 00000 n 
+0000000211 00000 n 
+0000000286 00000 n 
+0000007280 00000 n 
+0000007416 00000 n 
+0000010417 00000 n 
+0000010553 00000 n 
+0000014237 00000 n 
+0000014374 00000 n 
+0000018530 00000 n 
+trailer
+<< /Size 13 /Root 1 0 R >>
+startxref
+18668
+%%EOF

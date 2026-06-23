@@ -282,6 +282,10 @@ export function buildProximityPredictionTopPicks(history: EnrichedHistory): (num
   return buildProximityPredictionResults(history).topPicks;
 }
 
+export function buildProximityPredictionRankings(history: EnrichedHistory): (number[] | null)[] {
+  return buildProximityPredictionResults(history).rankings;
+}
+
 function buildProximityPredictionResults(
   history: EnrichedHistory,
   coverSize = 6,
@@ -289,6 +293,7 @@ function buildProximityPredictionResults(
   coverCounts: (number | null)[];
   scores: (number | null)[];
   topPicks: (number[] | null)[];
+  rankings: (number[] | null)[];
 } {
   const bucketCounts = emptyBucketCountMap();
   const numberAppearances = new Map<number, number>();
@@ -296,6 +301,7 @@ function buildProximityPredictionResults(
   const coverCounts: (number | null)[] = [];
   const scores: (number | null)[] = [];
   const topPicks: (number[] | null)[] = [];
+  const rankings: (number[] | null)[] = [];
 
   for (let number = 1; number <= 49; number += 1) {
     numberAppearances.set(number, 0);
@@ -307,6 +313,7 @@ function buildProximityPredictionResults(
       coverCounts.push(null);
       scores.push(null);
       topPicks.push(null);
+      rankings.push(null);
     } else {
       const totalDrawnNumbers = drawIndex * 6;
       const bucketShare = new Map(
@@ -363,6 +370,7 @@ function buildProximityPredictionResults(
       );
       scores.push(drawScore);
       topPicks.push(rankedNumbers.slice(0, 6));
+      rankings.push(rankedNumbers);
     }
 
     const numbers = analyzeDraw(draw);
@@ -376,5 +384,5 @@ function buildProximityPredictionResults(
     }
   });
 
-  return { coverCounts, scores, topPicks };
+  return { coverCounts, scores, topPicks, rankings };
 }

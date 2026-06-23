@@ -6,6 +6,10 @@ import {
   buildBayesianMarkovPredictionTopPicks,
 } from "../lib/bayesianMarkovScore";
 import {
+  buildCombinedPredictionCoverCounts,
+  buildCombinedPredictionTopPicks,
+} from "../lib/combinedPrediction";
+import {
   buildFreshnessPredictionCoverCounts,
   buildFreshnessPredictionTopPicks,
 } from "../lib/freshness";
@@ -59,6 +63,9 @@ const bayesianMarkovPredictionCoverCounts = computed(() =>
 const bayesianMarkovPredictionTopPicks = computed(() =>
   buildBayesianMarkovPredictionTopPicks({ draws: props.draws }),
 );
+const combinedPredictionTopPicks = computed(() =>
+  buildCombinedPredictionTopPicks({ draws: props.draws }),
+);
 const coverMeanGroups = computed(() =>
   [6, 5, 4, 3, 2, 1].map((coverSize) => ({
     label: `${coverSize} of 6`,
@@ -79,6 +86,12 @@ const coverMeanGroups = computed(() =>
         label: "By",
         value: meanPredictionCoverCount(
           buildBayesianMarkovPredictionCoverCounts({ draws: props.draws }, coverSize),
+        ),
+      },
+      {
+        label: "Mx",
+        value: meanPredictionCoverCount(
+          buildCombinedPredictionCoverCounts({ draws: props.draws }, coverSize),
         ),
       },
     ],
@@ -149,6 +162,10 @@ function predictionMethodsForNumber(number: number): string[] {
     methods.push("bayesian");
   }
 
+  if (combinedPredictionTopPicks.value[drawIndex]?.includes(number)) {
+    methods.push("mixed");
+  }
+
   return methods;
 }
 
@@ -157,6 +174,7 @@ function predictionFillForNumber(number: number): string | undefined {
     freshness: "#fed7aa",
     proximity: "#bbf7d0",
     bayesian: "#ddd6fe",
+    mixed: "#a7f3d0",
   };
   const methods = predictionMethodsForNumber(number);
 
